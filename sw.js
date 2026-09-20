@@ -1,4 +1,4 @@
-const CACHE='invoiceku-v6-business-suite';
+const CACHE='invoiceku-v6.1-business-suite';
 const LOCAL=[
   './','./index.html','./styles.css','./manifest.webmanifest',
   './assets/brand-mark.png','./assets/icon-192.png','./assets/icon-512.png',
