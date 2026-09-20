@@ -3,9 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0b1220" />
+  <meta name="theme-color" content="#f7f7f4" id="themeColorMeta" />
   <meta name="description" content="InvoiceKu — buat invoice profesional dari ratusan template, lalu unduh PDF atau PNG." />
   <title>InvoiceKu — Invoice Online</title>
+  <script>try{const t=localStorage.getItem('invoiceku_theme');document.documentElement.dataset.theme=t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){document.documentElement.dataset.theme='light'}</script>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -14,114 +15,145 @@
 
   <section id="landing" class="landing">
     <header class="landing-nav shell">
-      <a class="landing-brand" href="#top" aria-label="InvoiceKu">
-        <span class="landing-brand-mark">I</span>
+      <a class="landing-brand" href="#top" aria-label="InvoiceKu home">
+        <span class="brand-logo-shell"><img class="brand-logo-img" src="assets/brand-mark.png" alt="" /></span>
         <span>InvoiceKu</span>
       </a>
       <nav class="landing-links" aria-label="Navigasi utama">
         <a href="#features">Fitur</a>
         <a href="#templatesShowcase">Template</a>
-        <a href="#howItWorks">Cara pakai</a>
+        <a href="#howItWorks">Cara kerja</a>
       </nav>
-      <button id="landingCtaTop" class="nav-cta">Buat Invoice</button>
+      <div class="nav-actions">
+        <button class="theme-toggle" data-theme-toggle aria-label="Ganti mode warna"><span class="theme-icon" aria-hidden="true"></span><span class="theme-label">Mode</span></button>
+        <button id="landingCtaTop" class="nav-cta">Buat invoice <span>↗</span></button>
+      </div>
     </header>
 
     <main id="top">
       <section class="hero shell">
         <div class="hero-copy">
-          <div class="hero-kicker"><span></span> Invoice yang rapi tanpa ribet desain</div>
-          <h1>Invoice profesional,<br><em>siap kirim</em> dalam menit.</h1>
-          <p>Isi profil usaha sekali. Pilih template yang benar-benar terlihat seperti invoice asli, masukkan transaksi, lalu ekspor ke PDF atau PNG.</p>
+          <div class="hero-kicker"><span class="status-dot"></span> Invoice studio untuk usaha kecil & kreator</div>
+          <h1>Invoice yang rapi,<br><em>tanpa terasa template.</em></h1>
+          <p>Simpan identitas usaha sekali, pilih desain yang benar-benar bisa dilihat sebelum dipakai, lalu kirim hasilnya sebagai PDF atau PNG.</p>
           <div class="hero-actions">
-            <button id="landingCta" class="hero-primary">Mulai Gratis <span>→</span></button>
-            <a href="#templatesShowcase" class="hero-secondary">Lihat template</a>
+            <button id="landingCta" class="hero-primary">Buat invoice pertama <span>→</span></button>
+            <a href="#templatesShowcase" class="hero-secondary">Lihat pilihan desain</a>
           </div>
-          <div class="hero-trust">
-            <span><b id="heroTemplateCount">288</b> template nyata</span>
-            <span>PDF & PNG</span>
-            <span>Mobile friendly</span>
-            <span>Auto-save</span>
+          <div class="hero-proof">
+            <div><strong id="heroTemplateCount">288</strong><span>template siap pakai</span></div>
+            <div><strong>PDF / PNG</strong><span>siap kirim & cetak</span></div>
+            <div><strong>Mobile-first</strong><span>nyaman dari HP</span></div>
           </div>
         </div>
 
-        <div class="hero-visual" aria-label="Contoh tampilan InvoiceKu">
-          <div class="hero-window">
-            <div class="hero-window-bar"><span></span><span></span><span></span><b>InvoiceKu</b></div>
-            <div class="hero-app-shell">
-              <div class="hero-mini-sidebar">
-                <div class="hero-side-brand">IK</div>
-                <i class="active"></i><i></i><i></i><i></i>
+        <div class="hero-visual" aria-label="Preview aplikasi InvoiceKu">
+          <div class="hero-canvas-grid"></div>
+          <div class="hero-app-card">
+            <div class="hero-app-topbar">
+              <div class="hero-app-brand"><span class="brand-logo-shell small"><img class="brand-logo-img" src="assets/brand-mark.png" alt="" /></span><b>InvoiceKu</b></div>
+              <div class="hero-app-actions"><span></span><span></span><span></span></div>
+            </div>
+            <div class="hero-app-body">
+              <div class="hero-side-rail"><i class="active"></i><i></i><i></i><i></i></div>
+              <div class="hero-form-preview">
+                <small>NEW INVOICE</small>
+                <b>Buat invoice baru</b>
+                <label><span>Nomor invoice</span><i>#INV-2048</i></label>
+                <div class="hero-form-row"><label><span>Tanggal</span><i>20 Sep 2026</i></label><label><span>Jatuh tempo</span><i>27 Sep 2026</i></label></div>
+                <label><span>Pelanggan</span><i>Arunika Creative</i></label>
+                <label class="hero-wide-field"><span>Item</span><i>Brand identity · 1 · Rp2.500.000</i></label>
               </div>
-              <div class="hero-editor-skeleton">
-                <div class="hero-editor-head"><b>Buat invoice baru</b><span>PDF</span></div>
-                <div class="hero-fields"><i></i><i></i><i></i><i></i><i class="wide"></i></div>
-              </div>
-              <div class="hero-invoice-card">
-                <div class="hero-invoice-top"><div><small>STUDIO NUSA</small><b>INVOICE</b></div><span>#INV-2048</span></div>
-                <div class="hero-invoice-client"><small>DITAGIHKAN KEPADA</small><b>Arunika Creative</b><span>Jakarta, Indonesia</span></div>
-                <div class="hero-invoice-table">
-                  <div><b>Brand Identity</b><span>Rp2.500.000</span></div>
-                  <div><b>Social Media Kit</b><span>Rp1.250.000</span></div>
-                  <div><b>Website Landing</b><span>Rp3.750.000</span></div>
+              <div class="hero-paper-wrap">
+                <div class="hero-paper">
+                  <div class="hero-paper-head"><div><small>STUDIO NUSA</small><b>INVOICE</b></div><span>#INV-2048</span></div>
+                  <div class="hero-paper-rule"></div>
+                  <div class="hero-paper-client"><small>DITAGIHKAN KEPADA</small><b>Arunika Creative</b><span>Jakarta, Indonesia</span></div>
+                  <div class="hero-paper-table"><div><b>Brand Identity</b><span>Rp2.500.000</span></div><div><b>Social Media Kit</b><span>Rp1.250.000</span></div><div><b>Landing Page</b><span>Rp3.750.000</span></div></div>
+                  <div class="hero-paper-total"><span>Total</span><b>Rp7.500.000</b></div>
+                  <div class="hero-paper-foot">Pembayaran · BCA 123456789</div>
                 </div>
-                <div class="hero-invoice-total"><small>TOTAL</small><b>Rp7.500.000</b></div>
               </div>
             </div>
           </div>
-          <div class="floating-pill pill-one">PDF • A4</div>
-          <div class="floating-pill pill-two">Auto save ✓</div>
+          <div class="hero-note note-a"><b>288</b><span>layout & color combinations</span></div>
+          <div class="hero-note note-b"><span>Preview langsung</span><b>✓</b></div>
+        </div>
+      </section>
+
+      <section class="product-strip">
+        <div class="shell product-strip-inner">
+          <span>Profil usaha sekali isi</span><i></i><span>Preview real-time</span><i></i><span>Template nyata</span><i></i><span>Dark & light mode</span><i></i><span>PDF A4 + PNG HD</span>
         </div>
       </section>
 
       <section id="features" class="features shell">
-        <div class="section-heading">
-          <span>Lebih cepat. Lebih rapi.</span>
-          <h2>Dibuat untuk usaha yang ingin terlihat profesional.</h2>
+        <div class="section-heading editorial-heading">
+          <span>Yang penting saja</span>
+          <h2>Alur kerja yang dibuat untuk menyelesaikan invoice, bukan membuat Anda belajar aplikasi baru.</h2>
         </div>
-        <div class="feature-grid">
-          <article><div class="feature-icon">01</div><h3>Profil sekali isi</h3><p>Logo, nama usaha, alamat, kontak, dan tanda tangan otomatis masuk ke invoice berikutnya.</p></article>
-          <article><div class="feature-icon">02</div><h3>Preview real-time</h3><p>Setiap perubahan langsung terlihat. Di HP, kertas A4 otomatis menyesuaikan layar tanpa scroll horizontal.</p></article>
-          <article><div class="feature-icon">03</div><h3>Ekspor siap kirim</h3><p>Simpan invoice sebagai PDF A4 atau PNG resolusi tinggi untuk WhatsApp, email, atau arsip.</p></article>
+        <div class="feature-bento">
+          <article class="bento-card bento-profile">
+            <div class="bento-index">01</div>
+            <div><h3>Profil usaha tersimpan.</h3><p>Logo, nama usaha, alamat, kontak, dan tanda tangan tidak perlu diketik ulang setiap kali membuat invoice.</p></div>
+            <div class="profile-demo"><div class="demo-avatar"><img class="brand-logo-img" src="assets/brand-mark.png" alt="" /></div><div><b>Studio Nusa</b><span>Jakarta · 0812 3456 7890</span></div><em>Saved</em></div>
+          </article>
+          <article class="bento-card bento-mobile">
+            <div class="bento-index">02</div>
+            <div><h3>Benar-benar enak dari HP.</h3><p>Form satu kolom, bottom navigation, tombol besar, dan preview A4 yang otomatis mengecil mengikuti layar.</p></div>
+            <div class="phone-demo"><div class="phone-top"></div><div class="phone-sheet"></div><div class="phone-nav"><i></i><i></i><i></i><i></i></div></div>
+          </article>
+          <article class="bento-card bento-theme">
+            <div class="bento-index">03</div>
+            <div><h3>Terang atau gelap, tetap konsisten.</h3><p>Mode warna mengikuti pilihan pengguna dan logo brand ikut menyesuaikan kontrasnya secara otomatis.</p></div>
+            <div class="theme-demo"><div class="theme-swatch light-swatch"><img class="brand-logo-img" src="assets/brand-mark.png" alt="" /></div><div class="theme-swatch dark-swatch"><img class="brand-logo-img forced-light" src="assets/brand-mark.png" alt="" /></div></div>
+          </article>
+          <article class="bento-card bento-export">
+            <div class="bento-index">04</div>
+            <div><h3>Hasil akhir tetap fokus ke invoice.</h3><p>Tema aplikasi tidak mengubah dokumen. Invoice tetap diekspor sebagai kertas putih A4 yang aman untuk dicetak.</p></div>
+            <div class="export-demo"><span>PDF</span><span>PNG</span><b>A4</b></div>
+          </article>
         </div>
       </section>
 
       <section id="templatesShowcase" class="showcase-section">
         <div class="shell">
           <div class="section-heading row-heading">
-            <div><span>Template gallery</span><h2>Pilih dari tampilan yang benar-benar bisa dilihat.</h2></div>
-            <button id="showcaseCta" class="text-link-btn">Lihat semua template →</button>
+            <div><span>Template gallery</span><h2>Lihat desainnya dulu. Baru pilih.</h2><p>Thumbnail memakai struktur invoice nyata—bukan sekadar garis dan blok warna.</p></div>
+            <button id="showcaseCta" class="text-link-btn">Buka 288 template <span>→</span></button>
           </div>
           <div id="landingTemplateGrid" class="landing-template-grid"></div>
         </div>
       </section>
 
       <section id="howItWorks" class="how shell">
-        <div class="how-copy"><span>Cara pakai</span><h2>Dari kosong sampai invoice jadi, hanya tiga langkah.</h2></div>
-        <div class="how-steps">
-          <div><b>1</b><h3>Simpan profil usaha</h3><p>Masukkan identitas bisnis satu kali.</p></div>
-          <div><b>2</b><h3>Pilih template</h3><p>Lihat preview nyata dan pilih yang cocok.</p></div>
-          <div><b>3</b><h3>Isi & download</h3><p>Masukkan transaksi lalu ekspor PDF atau PNG.</p></div>
+        <div class="how-copy"><span>Cara kerja</span><h2>Tiga langkah yang masuk akal.</h2><p>Tidak ada setup teknis. Tidak ada desain dari nol.</p></div>
+        <div class="how-list">
+          <article><span>01</span><div><h3>Simpan identitas bisnis</h3><p>Masukkan logo, kontak, alamat, dan tanda tangan digital bila dibutuhkan.</p></div></article>
+          <article><span>02</span><div><h3>Pilih template berdasarkan preview</h3><p>Filter gaya, lihat mini invoice yang nyata, lalu pakai tanpa menghapus isi yang sudah diinput.</p></div></article>
+          <article><span>03</span><div><h3>Isi transaksi dan ekspor</h3><p>Tambahkan item, pajak, diskon, ongkir, kemudian download PDF A4 atau PNG.</p></div></article>
         </div>
       </section>
 
       <section class="landing-final shell">
-        <div><span>InvoiceKu</span><h2>Invoice seharusnya mudah dibuat, bukan memakan waktu.</h2></div>
-        <button id="landingCtaBottom" class="hero-primary light">Buat Invoice Sekarang <span>→</span></button>
+        <div class="final-mark"><img class="brand-logo-img forced-light" src="assets/brand-mark.png" alt="" /></div>
+        <div><span>InvoiceKu</span><h2>Lebih sedikit klik.<br>Lebih cepat dikirim.</h2><p>Buat invoice pertama Anda dan simpan profil usaha untuk invoice berikutnya.</p></div>
+        <button id="landingCtaBottom" class="hero-primary light">Mulai sekarang <span>→</span></button>
       </section>
     </main>
 
     <footer class="landing-footer shell">
-      <div><b>InvoiceKu</b><span>Simple online invoice studio.</span></div>
-      <p>Created by: <a href="https://www.instagram.com/xdaniel04/" target="_blank" rel="noopener noreferrer">xdaniel04</a></p>
+      <div class="footer-brand"><span class="brand-logo-shell small"><img class="brand-logo-img" src="assets/brand-mark.png" alt="" /></span><div><b>InvoiceKu</b><span>Online invoice studio.</span></div></div>
+      <p>Created by <a href="https://www.instagram.com/xdaniel04/" target="_blank" rel="noopener noreferrer">xdaniel04</a></p>
       <span>© 2026 InvoiceKu</span>
     </footer>
   </section>
 
   <section id="onboarding" class="onboarding hidden">
-    <button id="backToLanding" class="back-landing">← Kembali</button>
+    <button id="backToLanding" class="back-landing">← Kembali</button><button class="theme-toggle onboarding-theme" data-theme-toggle aria-label="Ganti mode warna"><span class="theme-icon" aria-hidden="true"></span><span class="theme-label">Mode</span></button>
     <div class="onboarding-wrap">
       <div class="onboarding-copy">
-        <div class="brand-pill">InvoiceKu</div>
+        <div class="onboarding-brand"><span class="brand-logo-shell"><img class="brand-logo-img" src="assets/brand-mark.png" alt="" /></span><b>InvoiceKu</b></div>
         <span class="onboarding-step">LANGKAH PERTAMA</span>
         <h1>Siapkan identitas usaha Anda.</h1>
         <p>Informasi ini akan dipakai otomatis di setiap invoice. Semuanya bisa diubah lagi dari dashboard.</p>
@@ -168,7 +200,7 @@
 
   <div id="app" class="app hidden">
     <aside class="sidebar">
-      <div class="brand-row"><div class="brand-mark">IK</div><div><strong>InvoiceKu</strong><small>Invoice Studio</small></div></div>
+      <div class="brand-row"><span class="brand-logo-shell app-mark"><img class="brand-logo-img forced-light" src="assets/brand-mark.png" alt="" /></span><div><strong>InvoiceKu</strong><small>Invoice Studio</small></div></div>
       <nav class="nav-tabs">
         <button data-tab="editor" class="nav-item active"><span class="nav-icon">✦</span><span>Buat Invoice</span></button>
         <button data-tab="templates" class="nav-item"><span class="nav-icon">▦</span><span>Template</span><b id="templateCount">288</b></button>
@@ -177,14 +209,13 @@
       </nav>
       <div class="sidebar-bottom">
         <button id="installBtn" class="ghost-btn hidden">＋ Install Aplikasi</button>
-        <button id="backHomeBtn" class="ghost-btn">⌂ Landing Page</button>
+        <button class="ghost-btn sidebar-theme" data-theme-toggle><span class="theme-icon" aria-hidden="true"></span><span class="theme-label">Ganti tema</span></button><button id="backHomeBtn" class="ghost-btn">⌂ Landing Page</button>
         <button id="logoutBtn" class="logout-btn">Hapus profil & keluar</button>
       </div>
     </aside>
 
     <header class="mobile-header">
-      <div class="mobile-brand"><span>IK</span><strong>InvoiceKu</strong></div>
-      <button id="quickDownload" class="mobile-download" aria-label="Download invoice">↓</button>
+      <div class="mobile-brand"><span class="brand-logo-shell small"><img class="brand-logo-img" src="assets/brand-mark.png" alt="" /></span><strong>InvoiceKu</strong></div><div class="mobile-header-actions"><button class="mobile-theme" data-theme-toggle aria-label="Ganti mode warna"><span class="theme-icon" aria-hidden="true"></span></button><button id="quickDownload" class="mobile-download" aria-label="Download invoice">↓</button></div>
     </header>
 
     <main class="workspace">
@@ -311,8 +342,6 @@
     </div>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

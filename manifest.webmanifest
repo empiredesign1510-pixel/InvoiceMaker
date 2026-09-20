@@ -1,9 +1,13 @@
 {
-  "name":"InvoiceKu - Invoice Online",
-  "short_name":"InvoiceKu",
-  "start_url":"./",
-  "display":"standalone",
-  "background_color":"#f4f6f8",
-  "theme_color":"#0b1220",
-  "description":"Pembuat invoice online mobile-first dengan 288 template nyata dan ekspor PNG/PDF."
+  "name": "InvoiceKu",
+  "short_name": "InvoiceKu",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f7f7f4",
+  "theme_color": "#111315",
+  "description": "Invoice online dengan ratusan template, ekspor PDF dan PNG.",
+  "icons": [
+    {"src":"assets/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
+    {"src":"assets/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+  ]
 }

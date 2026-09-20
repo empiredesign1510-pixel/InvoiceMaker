@@ -1,6 +1,6 @@
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
-const STORAGE = { profile:'invoiceku_profile', draft:'invoiceku_draft', history:'invoiceku_history', template:'invoiceku_template' };
+const STORAGE = { profile:'invoiceku_profile', draft:'invoiceku_draft', history:'invoiceku_history', template:'invoiceku_template', theme:'invoiceku_theme' };
 
 const palettes = [
   {name:'Aurora',accent:'#2563eb',soft:'#eff6ff',category:'Modern'},
@@ -58,7 +58,32 @@ let deferredPrompt = null;
 let activeFilter = 'Semua';
 let templateVisibleCount = 36;
 
+const EXPORT_LIBS = {
+  html2canvas:'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+  jspdf:'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
+};
+const scriptPromises = new Map();
+
 function safeParse(value, fallback){ try { return value ? JSON.parse(value) : fallback; } catch { return fallback; } }
+
+function loadScriptOnce(src, key){
+  if(key==='html2canvas' && window.html2canvas) return Promise.resolve();
+  if(key==='jspdf' && window.jspdf?.jsPDF) return Promise.resolve();
+  if(scriptPromises.has(key)) return scriptPromises.get(key);
+  const promise=new Promise((resolve,reject)=>{
+    const script=document.createElement('script');
+    script.src=src; script.async=true; script.dataset.lib=key;
+    script.onload=resolve;
+    script.onerror=()=>reject(new Error(`Gagal memuat library ${key}`));
+    document.head.appendChild(script);
+  });
+  scriptPromises.set(key,promise);
+  return promise;
+}
+async function ensureExportLibraries(needsPdf=false){
+  await loadScriptOnce(EXPORT_LIBS.html2canvas,'html2canvas');
+  if(needsPdf) await loadScriptOnce(EXPORT_LIBS.jspdf,'jspdf');
+}
 function toast(message){ const el=$('#toast'); el.textContent=message; el.classList.add('show'); clearTimeout(toast.timer); toast.timer=setTimeout(()=>el.classList.remove('show'),2200); }
 function formatMoney(value,currency='IDR'){ return new Intl.NumberFormat('id-ID',{style:'currency',currency,maximumFractionDigits:currency==='IDR'?0:2}).format(Number(value)||0); }
 function todayPlus(days=0){ const d=new Date(); d.setDate(d.getDate()+days); return d.toISOString().slice(0,10); }
@@ -66,7 +91,35 @@ function escapeHtml(value=''){ return String(value).replace(/[&<>'"]/g,c=>({'&':
 function fileToDataURL(file){ return new Promise((resolve,reject)=>{ if(!file) return resolve(null); if(file.size>3*1024*1024) return reject(new Error('Ukuran file maksimal 3 MB')); const reader=new FileReader(); reader.onload=()=>resolve(reader.result); reader.onerror=reject; reader.readAsDataURL(file); }); }
 function setPreview(el,data,label){ el.innerHTML=data?`<img src="${data}" alt="${label}"/>`:label; }
 
-async function setupUpload(input, preview, key){
+function preferredTheme(){
+  const saved=localStorage.getItem(STORAGE.theme);
+  if(saved==='light'||saved==='dark') return saved;
+  return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+function applyTheme(theme, persist=false){
+  const next=theme==='dark'?'dark':'light';
+  document.documentElement.dataset.theme=next;
+  if(persist) localStorage.setItem(STORAGE.theme,next);
+  const meta=$('#themeColorMeta');
+  if(meta) meta.setAttribute('content',next==='dark'?'#0d0f10':'#f7f7f4');
+  $$('[data-theme-toggle]').forEach(btn=>{
+    btn.setAttribute('aria-pressed',String(next==='dark'));
+    const label=btn.querySelector('.theme-label');
+    if(label) label.textContent=next==='dark'?'Mode terang':'Mode gelap';
+    btn.title=next==='dark'?'Gunakan mode terang':'Gunakan mode gelap';
+  });
+}
+function toggleTheme(){
+  applyTheme(document.documentElement.dataset.theme==='dark'?'light':'dark',true);
+}
+applyTheme(preferredTheme());
+$$('[data-theme-toggle]').forEach(btn=>btn.addEventListener('click',toggleTheme));
+if(window.matchMedia){
+  const scheme=window.matchMedia('(prefers-color-scheme: dark)');
+  scheme.addEventListener?.('change',e=>{ if(!localStorage.getItem(STORAGE.theme)) applyTheme(e.matches?'dark':'light'); });
+}
+
+function setupUpload(input, preview, key){
   input.addEventListener('change', async()=>{ try { const data=await fileToDataURL(input.files[0]); input.dataset.value=data||''; setPreview(preview,data,key==='logo'?'LOGO':'TTD'); } catch(e){ toast(e.message); } });
 }
 
@@ -282,6 +335,7 @@ function renderHistory(){
 }
 
 async function capture(){
+  await ensureExportLibraries(false);
   const paper=$('#invoicePaper'), canvasWrap=$('#paperCanvas');
   toast('Menyiapkan file...');
   const previous=canvasWrap.style.transform;
@@ -291,7 +345,7 @@ async function capture(){
   finally { canvasWrap.style.transform=previous; requestAnimationFrame(fitInvoicePreview); }
 }
 async function downloadPNG(){ try { const canvas=await capture(); const a=document.createElement('a'); a.download=`${draft.number||'invoice'}.png`; a.href=canvas.toDataURL('image/png',1); a.click(); toast('PNG berhasil dibuat'); } catch(e){ console.error(e); toast('Gagal membuat PNG'); } }
-async function downloadPDF(){ try { const canvas=await capture(); const img=canvas.toDataURL('image/jpeg',.97); const {jsPDF}=window.jspdf; const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true}); pdf.addImage(img,'JPEG',0,0,210,297,undefined,'FAST'); pdf.save(`${draft.number||'invoice'}.pdf`); toast('PDF berhasil dibuat'); } catch(e){ console.error(e); toast('Gagal membuat PDF'); } }
+async function downloadPDF(){ try { await ensureExportLibraries(true); const canvas=await capture(); const img=canvas.toDataURL('image/jpeg',.97); const {jsPDF}=window.jspdf; const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true}); pdf.addImage(img,'JPEG',0,0,210,297,undefined,'FAST'); pdf.save(`${draft.number||'invoice'}.pdf`); toast('PDF berhasil dibuat'); } catch(e){ console.error(e); toast('Gagal membuat PDF'); } }
 $('#downloadPngBtn').addEventListener('click',downloadPNG);
 $('#downloadPdfBtn').addEventListener('click',downloadPDF);
 $('#mobilePngBtn').addEventListener('click',downloadPNG);
