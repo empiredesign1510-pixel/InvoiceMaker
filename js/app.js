@@ -23,6 +23,7 @@
     activeTemplateFilter:'Semua',
     templateVisible:36,
     authMode:'login',
+    authSettings:null,
     autosaveTimer:null,
     autosaveBusy:false,
     undo:[],
@@ -109,26 +110,56 @@
     if(!Cloud.configured()){ showOnly('setupRequired'); return; }
     if(Cloud.user()){ bootstrapUser(); return; }
     openModal('authModal');
+    refreshAuthCapabilities().catch(()=>{});
   }
   ['#landingLogin','#landingStart','#landingStartBottom','#showcaseCta'].forEach(sel=>$(sel)?.addEventListener('click',requestAuth));
   $('#backToLanding')?.addEventListener('click',()=>showOnly('landing'));
   $('#setupDemoBtn')?.addEventListener('click',()=>showOnly('landing'));
 
   // ---------------- Auth ----------------
+  function applyAuthCapabilities(settings){
+    state.authSettings=settings||null;
+    const googleReady=Boolean(settings?.external?.google);
+    const googleBtn=$('#googleLogin');
+    if(googleBtn){
+      googleBtn.disabled=!googleReady;
+      googleBtn.classList.toggle('is-disabled',!googleReady);
+    }
+    const providerNote=$('#googleAvailability');
+    if(providerNote){
+      providerNote.classList.toggle('hidden',googleReady);
+      providerNote.textContent=googleReady?'':'Login Google sedang belum aktif. Gunakan email dan password sementara.';
+    }
+  }
+  async function refreshAuthCapabilities(force=false){
+    try{ applyAuthCapabilities(await Cloud.authSettings(force)); }
+    catch{ applyAuthCapabilities(null); }
+  }
   function setAuthMode(mode){
     state.authMode=mode;
     $$('[data-auth-tab]').forEach(btn=>btn.classList.toggle('active',btn.dataset.authTab===mode));
     $('#authSubmit').textContent=mode==='login'?'Masuk':'Buat akun';
     $('#authPassword').autocomplete=mode==='login'?'current-password':'new-password';
+    $('#authConsentWrap')?.classList.toggle('hidden',mode!=='register');
+    $('#forgotPassword')?.classList.toggle('hidden',mode!=='login');
+    const googleLabel=$('#googleLoginLabel');
+    if(googleLabel) googleLabel.textContent=mode==='login'?'Masuk dengan Google':'Daftar dengan Google';
     $('#authMessage').textContent='';
+    if(mode==='register' && state.authSettings && state.authSettings.autoconfirm===false){
+      $('#authMessage').textContent='Pendaftaran langsung belum aktif. Pengaturan login perlu diubah agar akun dapat langsung digunakan tanpa verifikasi email.';
+    }
   }
   $$('[data-auth-tab]').forEach(btn=>btn.addEventListener('click',()=>setAuthMode(btn.dataset.authTab)));
   $('#authForm')?.addEventListener('submit',async e=>{
     e.preventDefault();
     const email=$('#authEmail').value.trim();
     const password=$('#authPassword').value;
+    if(state.authMode==='register' && !$('#authConsent')?.checked){
+      $('#authMessage').textContent='Centang persetujuan terlebih dahulu untuk membuat akun.';
+      return;
+    }
     $('#authSubmit').disabled=true;
-    $('#authMessage').textContent='Menghubungkan...';
+    $('#authMessage').textContent=state.authMode==='login'?'Memeriksa akun...':'Membuat akun...';
     try{
       if(state.authMode==='login'){
         await Cloud.signIn(email,password);
@@ -136,13 +167,41 @@
         await bootstrapUser();
       }else{
         const result=await Cloud.signUp(email,password);
-        if(result.session){ closeModal('authModal'); await bootstrapUser(); }
-        else $('#authMessage').textContent='Akun dibuat. Cek email Anda untuk konfirmasi, lalu masuk.';
+        if(result.session){
+          closeModal('authModal');
+          $('#authConsent').checked=false;
+          await bootstrapUser();
+          toast('Akun berhasil dibuat.');
+        }else{
+          $('#authMessage').textContent='Akun berhasil dibuat, tetapi pendaftaran langsung belum aktif. Nonaktifkan konfirmasi email pada pengaturan Auth agar pengguna langsung masuk setelah mendaftar.';
+        }
       }
-    }catch(err){ $('#authMessage').textContent=err.message||'Autentikasi gagal.'; }
+    }catch(err){
+      const message=String(err?.message||'Autentikasi gagal.');
+      $('#authMessage').textContent=/email not confirmed/i.test(message)?'Akun belum dapat digunakan karena konfirmasi email masih aktif.':message;
+    }
     finally{$('#authSubmit').disabled=false;}
   });
-  $('#googleLogin')?.addEventListener('click',async()=>{ try{ await Cloud.signInGoogle(); }catch(err){ toast(err.message,'error'); } });
+  $('#googleLogin')?.addEventListener('click',async()=>{
+    if(state.authMode==='register' && !$('#authConsent')?.checked){
+      $('#authMessage').textContent='Centang persetujuan terlebih dahulu untuk membuat akun.';
+      return;
+    }
+    try{
+      $('#googleLogin').disabled=true;
+      await refreshAuthCapabilities(true);
+      if(!state.authSettings?.external?.google){
+        $('#authMessage').textContent='Login Google sedang belum aktif. Gunakan email dan password sementara.';
+        return;
+      }
+      await Cloud.signInGoogle();
+    }catch(err){
+      const message=String(err?.message||'Login Google gagal.');
+      $('#authMessage').textContent=/unsupported provider|provider is not enabled/i.test(message)?'Login Google sedang belum aktif. Gunakan email dan password sementara.':message;
+    }finally{
+      if(state.authSettings?.external?.google) $('#googleLogin').disabled=false;
+    }
+  });
   $('#forgotPassword')?.addEventListener('click',async()=>{
     const email=$('#authEmail').value.trim();
     if(!email){ $('#authMessage').textContent='Isi email terlebih dahulu.'; return; }
@@ -150,7 +209,19 @@
     catch(err){ $('#authMessage').textContent=err.message; }
   });
   $('#passwordForm')?.addEventListener('submit',async e=>{e.preventDefault();try{await Cloud.updatePassword($('#newPassword').value);closeModal('passwordModal');$('#newPassword').value='';toast('Password berhasil diperbarui.');}catch(err){toast(err.message,'error');}});
-  $('#signOutBtn')?.addEventListener('click',async()=>{ try{ Cloud.unsubscribe(); await Cloud.signOut(); resetState(); showOnly('landing'); toast('Anda sudah keluar.'); }catch(err){toast(err.message,'error');} });
+  async function performSignOut(){
+    try{
+      Cloud.unsubscribe();
+      await Cloud.signOut();
+      resetState();
+      closeModal('authModal');
+      $('#moreSheet')?.classList.add('hidden');
+      history.replaceState({},'',location.pathname);
+      showOnly('landing');
+      toast('Anda sudah keluar dari akun.');
+    }catch(err){ toast(err.message||'Gagal keluar dari akun.','error'); }
+  }
+  ['#signOutBtn','#settingsSignOutBtn','#mobileSignOutBtn'].forEach(sel=>$(sel)?.addEventListener('click',performSignOut));
 
   function resetState(){
     state.profile=null;state.customers=[];state.products=[];state.invoices=[];state.recurring=[];state.notifications=[];state.preferences=[];state.customTemplates=[];state.draft=null;state.undo=[];state.redo=[];
@@ -624,7 +695,7 @@
 
   // ---------------- Settings ----------------
   function loadSettings(){
-    const p=state.profile;if(!p)return;$('#settingsName').value=p.name;$('#settingsPhone').value=p.phone;$('#settingsAddress').value=p.address;$('#settingsEmail').value=p.email;$('#settingsWebsite').value=p.website;$('#settingsBankName').value=p.bankName;$('#settingsBankAccount').value=p.bankAccount;$('#settingsBankHolder').value=p.bankHolder;$('#settingsEwallet').value=p.ewallet;$('#invoicePattern').value=p.invoicePattern;$('#defaultCurrency').value=p.defaultCurrency;$('#defaultDueDays').value=p.defaultDueDays;setImagePreview('#settingsLogoPreview',p.logo,'LOGO');setImagePreview('#settingsSignaturePreview',p.signature,'TTD');setImagePreview('#settingsQrisPreview',p.qris,'QRIS');$('#accountInfo').innerHTML=`<b>${escape(Cloud.user()?.email||'Akun Supabase')}</b><span>User ID: ${escape(Cloud.user()?.id||'')}</span>`;
+    const p=state.profile;if(!p)return;$('#settingsName').value=p.name;$('#settingsPhone').value=p.phone;$('#settingsAddress').value=p.address;$('#settingsEmail').value=p.email;$('#settingsWebsite').value=p.website;$('#settingsBankName').value=p.bankName;$('#settingsBankAccount').value=p.bankAccount;$('#settingsBankHolder').value=p.bankHolder;$('#settingsEwallet').value=p.ewallet;$('#invoicePattern').value=p.invoicePattern;$('#defaultCurrency').value=p.defaultCurrency;$('#defaultDueDays').value=p.defaultDueDays;setImagePreview('#settingsLogoPreview',p.logo,'LOGO');setImagePreview('#settingsSignaturePreview',p.signature,'TTD');setImagePreview('#settingsQrisPreview',p.qris,'QRIS');$('#accountInfo').innerHTML=`<b>${escape(Cloud.user()?.email||'Akun InvoiceKu')}</b><span>ID akun: ${escape(Cloud.user()?.id||'')}</span>`;
   }
   function setImagePreview(sel,url,label){const el=$(sel);if(!el)return;el.innerHTML=url?`<img src="${escape(url)}" alt="${label}">`:label;}
   $('#settingsForm')?.addEventListener('submit',async e=>{
@@ -678,7 +749,7 @@
       const session=await Cloud.session();
       if(session)await bootstrapUser(); else showOnly('landing');
       Cloud.onAuthChange((event,s)=>{ if(event==='PASSWORD_RECOVERY'){openModal('passwordModal');return;} if(event==='SIGNED_IN'&&s?.user&&$('#app')?.classList.contains('hidden')&&$('#onboarding')?.classList.contains('hidden')) bootstrapUser(); if(event==='SIGNED_OUT'){resetState();showOnly('landing');} });
-    }catch(err){console.error(err);showOnly('landing');toast('Supabase belum dapat dihubungi.','error');}
+    }catch(err){console.error(err);showOnly('landing');toast('Layanan cloud belum dapat dihubungi.','error');}
   }
   boot();
 })();

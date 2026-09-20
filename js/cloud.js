@@ -3,6 +3,7 @@
   let client = null;
   let currentUser = null;
   let realtimeChannel = null;
+  let authSettingsCache = null;
 
   const configured = () => Boolean(cfg.supabaseUrl && cfg.supabasePublishableKey && window.supabase?.createClient);
 
@@ -27,6 +28,24 @@
   function uid(){ return currentUser?.id || null; }
   function requireUser(){ if(!uid()) throw new Error('Silakan masuk terlebih dahulu.'); return uid(); }
 
+  async function authSettings(force=false){
+    if(authSettingsCache && !force) return authSettingsCache;
+    if(!cfg.supabaseUrl || !cfg.supabasePublishableKey) return null;
+    const response=await fetch(`${cfg.supabaseUrl.replace(/\/$/,'')}/auth/v1/settings`,{
+      headers:{apikey:cfg.supabasePublishableKey}
+    });
+    if(!response.ok) throw new Error('Status layanan login tidak dapat diperiksa.');
+    authSettingsCache=await response.json();
+    return authSettingsCache;
+  }
+  async function googleEnabled(){
+    const settings=await authSettings();
+    return Boolean(settings?.external?.google);
+  }
+  async function emailAutoConfirmEnabled(){
+    const settings=await authSettings();
+    return Boolean(settings?.autoconfirm);
+  }
   async function signIn(email,password){
     init();
     const {data,error}=await client.auth.signInWithPassword({email,password});
@@ -44,6 +63,7 @@
   }
   async function signInGoogle(){
     init();
+    if(!(await googleEnabled())) throw new Error('Login Google belum tersedia. Gunakan email dan password sementara.');
     const redirectTo = cfg.publicSiteUrl || `${location.origin}${location.pathname}`;
     const {data,error}=await client.auth.signInWithOAuth({provider:'google',options:{redirectTo}});
     if(error) throw error;
@@ -199,5 +219,5 @@
   }
   function unsubscribe(){ if(client && realtimeChannel){ client.removeChannel(realtimeChannel); realtimeChannel=null; } }
 
-  window.InvoiceCloud={configured,session,user,uid,signIn,signUp,signInGoogle,resetPassword,updatePassword,signOut,onAuthChange,getProfile,saveProfile,uploadAsset,listCustomers,saveCustomer,deleteCustomer,listProducts,saveProduct,deleteProduct,claimInvoiceNumber,listInvoices,getInvoice,saveInvoice,deleteInvoice,addPayment,getPublicInvoice,listRecurring,saveRecurring,deleteRecurring,listNotifications,markNotification,markAllNotifications,listTemplatePreferences,saveTemplatePreference,listCustomTemplates,saveCustomTemplate,deleteCustomTemplate,subscribe,unsubscribe};
+  window.InvoiceCloud={configured,session,user,uid,authSettings,googleEnabled,emailAutoConfirmEnabled,signIn,signUp,signInGoogle,resetPassword,updatePassword,signOut,onAuthChange,getProfile,saveProfile,uploadAsset,listCustomers,saveCustomer,deleteCustomer,listProducts,saveProduct,deleteProduct,claimInvoiceNumber,listInvoices,getInvoice,saveInvoice,deleteInvoice,addPayment,getPublicInvoice,listRecurring,saveRecurring,deleteRecurring,listNotifications,markNotification,markAllNotifications,listTemplatePreferences,saveTemplatePreference,listCustomTemplates,saveCustomTemplate,deleteCustomTemplate,subscribe,unsubscribe};
 })();
