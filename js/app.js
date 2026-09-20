@@ -23,7 +23,6 @@
     activeTemplateFilter:'Semua',
     templateVisible:36,
     authMode:'login',
-    authSettings:null,
     autosaveTimer:null,
     autosaveBusy:false,
     undo:[],
@@ -110,31 +109,12 @@
     if(!Cloud.configured()){ showOnly('setupRequired'); return; }
     if(Cloud.user()){ bootstrapUser(); return; }
     openModal('authModal');
-    refreshAuthCapabilities().catch(()=>{});
   }
   ['#landingLogin','#landingStart','#landingStartBottom','#showcaseCta'].forEach(sel=>$(sel)?.addEventListener('click',requestAuth));
   $('#backToLanding')?.addEventListener('click',()=>showOnly('landing'));
   $('#setupDemoBtn')?.addEventListener('click',()=>showOnly('landing'));
 
   // ---------------- Auth ----------------
-  function applyAuthCapabilities(settings){
-    state.authSettings=settings||null;
-    const googleReady=Boolean(settings?.external?.google);
-    const googleBtn=$('#googleLogin');
-    if(googleBtn){
-      googleBtn.disabled=!googleReady;
-      googleBtn.classList.toggle('is-disabled',!googleReady);
-    }
-    const providerNote=$('#googleAvailability');
-    if(providerNote){
-      providerNote.classList.toggle('hidden',googleReady);
-      providerNote.textContent=googleReady?'':'Login Google sedang belum aktif. Gunakan email dan password sementara.';
-    }
-  }
-  async function refreshAuthCapabilities(force=false){
-    try{ applyAuthCapabilities(await Cloud.authSettings(force)); }
-    catch{ applyAuthCapabilities(null); }
-  }
   function setAuthMode(mode){
     state.authMode=mode;
     $$('[data-auth-tab]').forEach(btn=>btn.classList.toggle('active',btn.dataset.authTab===mode));
@@ -142,12 +122,7 @@
     $('#authPassword').autocomplete=mode==='login'?'current-password':'new-password';
     $('#authConsentWrap')?.classList.toggle('hidden',mode!=='register');
     $('#forgotPassword')?.classList.toggle('hidden',mode!=='login');
-    const googleLabel=$('#googleLoginLabel');
-    if(googleLabel) googleLabel.textContent=mode==='login'?'Masuk dengan Google':'Daftar dengan Google';
     $('#authMessage').textContent='';
-    if(mode==='register' && state.authSettings && state.authSettings.autoconfirm===false){
-      $('#authMessage').textContent='Pendaftaran langsung belum aktif. Pengaturan login perlu diubah agar akun dapat langsung digunakan tanpa verifikasi email.';
-    }
   }
   $$('[data-auth-tab]').forEach(btn=>btn.addEventListener('click',()=>setAuthMode(btn.dataset.authTab)));
   $('#authForm')?.addEventListener('submit',async e=>{
@@ -182,26 +157,6 @@
     }
     finally{$('#authSubmit').disabled=false;}
   });
-  $('#googleLogin')?.addEventListener('click',async()=>{
-    if(state.authMode==='register' && !$('#authConsent')?.checked){
-      $('#authMessage').textContent='Centang persetujuan terlebih dahulu untuk membuat akun.';
-      return;
-    }
-    try{
-      $('#googleLogin').disabled=true;
-      await refreshAuthCapabilities(true);
-      if(!state.authSettings?.external?.google){
-        $('#authMessage').textContent='Login Google sedang belum aktif. Gunakan email dan password sementara.';
-        return;
-      }
-      await Cloud.signInGoogle();
-    }catch(err){
-      const message=String(err?.message||'Login Google gagal.');
-      $('#authMessage').textContent=/unsupported provider|provider is not enabled/i.test(message)?'Login Google sedang belum aktif. Gunakan email dan password sementara.':message;
-    }finally{
-      if(state.authSettings?.external?.google) $('#googleLogin').disabled=false;
-    }
-  });
   $('#forgotPassword')?.addEventListener('click',async()=>{
     const email=$('#authEmail').value.trim();
     if(!email){ $('#authMessage').textContent='Isi email terlebih dahulu.'; return; }
@@ -231,13 +186,14 @@
   function profileToUi(row){
     if(!row) return null;
     return {
-      userId:row.user_id,name:row.business_name||'',phone:row.phone||'',address:row.address||'',email:row.email||'',website:row.website||'',
+      userId:row.user_id,businessId:row.business_id||row.id||null,name:row.business_name??row.name??'',phone:row.phone||'',address:row.address||'',email:row.email||'',website:row.website||'',
       logo:row.logo_url||'',signature:row.signature_url||'',qris:row.qris_url||'',bankName:row.bank_name||'',bankAccount:row.bank_account||'',bankHolder:row.bank_holder||'',ewallet:row.ewallet||'',
-      invoicePattern:row.invoice_pattern||'INV/{YYYY}/{MM}/{SEQ4}',invoiceCounter:Number(row.invoice_counter)||0,defaultCurrency:row.default_currency||'IDR',defaultDueDays:Number(row.default_due_days)||7
+      invoicePattern:row.invoice_pattern||'INV/{YYYY}/{MM}/{SEQ4}',invoiceCounter:Number(row.invoice_counter)||0,defaultCurrency:row.default_currency||'IDR',defaultDueDays:Number(row.default_due_days)||7,
+      reminderOffsets:Array.isArray(row.reminder_offsets)?row.reminder_offsets:[-3,0,1,3,7],reminderMessage:row.reminder_message||'Halo {CUSTOMER}, pengingat untuk {NUMBER} sebesar {TOTAL}. Jatuh tempo {DUE}. Detail: {LINK}'
     };
   }
   function profileToDb(p){
-    return {business_name:p.name,phone:p.phone,address:p.address,email:p.email||'',website:p.website||'',logo_url:p.logo||'',signature_url:p.signature||'',qris_url:p.qris||'',bank_name:p.bankName||'',bank_account:p.bankAccount||'',bank_holder:p.bankHolder||'',ewallet:p.ewallet||'',invoice_pattern:p.invoicePattern||'INV/{YYYY}/{MM}/{SEQ4}',default_currency:p.defaultCurrency||'IDR',default_due_days:Number(p.defaultDueDays)||7};
+    return {business_name:p.name,phone:p.phone,address:p.address,email:p.email||'',website:p.website||'',logo_url:p.logo||'',signature_url:p.signature||'',qris_url:p.qris||'',bank_name:p.bankName||'',bank_account:p.bankAccount||'',bank_holder:p.bankHolder||'',ewallet:p.ewallet||'',invoice_pattern:p.invoicePattern||'INV/{YYYY}/{MM}/{SEQ4}',default_currency:p.defaultCurrency||'IDR',default_due_days:Number(p.defaultDueDays)||7,reminder_offsets:p.reminderOffsets||[-3,0,1,3,7],reminder_message:p.reminderMessage||undefined};
   }
   function previewFile(input,preview){
     const file=input.files?.[0];
@@ -284,8 +240,8 @@
       showOnly('app');
       switchTab('dashboard');
       const cached=safeJson(localStorage.getItem(localDraftKey()),null);
-      if(cached){ state.draft=cached; selectTemplateInternal(cached.templateId||'0-0',false); syncDraftToForm(); renderInvoice(); }
-      else await newInvoice(false);
+      if(cached&&confirm('Ada draft yang belum selesai dari sesi sebelumnya. Lanjutkan draft tersebut?')){ state.draft=cached; selectTemplateInternal(cached.templateId||'0-0',false); syncDraftToForm(); renderInvoice(); toast('Draft dipulihkan.'); }
+      else { if(cached)localStorage.removeItem(localDraftKey()); await newInvoice(false); }
       Cloud.subscribe(handleRealtime);
     }catch(err){ console.error(err); toast(`Gagal memuat akun: ${err.message}`,'error'); }
   }
@@ -333,7 +289,7 @@
 
   // ---------------- Invoice draft / editor ----------------
   function emptyDraft(number){
-    return {id:null,publicToken:null,number:number||'',status:'draft',date:todayPlus(0),due:todayPlus(state.profile?.defaultDueDays||7),currency:state.profile?.defaultCurrency||'IDR',customerId:'',customerName:'',customerPhone:'',customerEmail:'',customerAddress:'',items:[{productId:'',name:'Produk / Jasa',description:'',qty:1,unit:'pcs',price:100000}],discount:0,tax:0,shipping:0,paymentInfo:defaultPaymentInfo(),notes:'Terima kasih atas kepercayaan Anda.',templateId:state.selectedTemplate?.id||'0-0',publicEnabled:true,payments:[]};
+    return {id:null,publicToken:null,number:number||'',status:'draft',date:todayPlus(0),due:todayPlus(state.profile?.defaultDueDays||7),currency:state.profile?.defaultCurrency||'IDR',customerId:'',customerName:'',customerPhone:'',customerEmail:'',customerAddress:'',items:[{productId:'',name:'Produk / Jasa',description:'',qty:1,unit:'pcs',price:100000,discount:0,taxRate:0}],discount:0,tax:0,taxMode:'invoice',taxInclusive:false,shipping:0,tags:[],paymentInfo:defaultPaymentInfo(),notes:'Terima kasih atas kepercayaan Anda.',templateId:state.selectedTemplate?.id||'0-0',publicEnabled:true,payments:[],documentType:'invoice'};
   }
   function defaultPaymentInfo(){
     if(!state.profile) return '';
@@ -374,7 +330,7 @@
   function redo(){ if(!state.redo.length)return; state.undo.push(clone(state.draft)); state.draft=state.redo.pop(); syncDraftToForm();renderItems();renderInvoice();persistLocalDraft(); }
   $('#undoBtn')?.addEventListener('click',undo); $('#redoBtn')?.addEventListener('click',redo);
 
-  const draftBindings={invoiceNumber:'number',invoiceStatus:'status',currency:'currency',invoiceDate:'date',dueDate:'due',customerName:'customerName',customerPhone:'customerPhone',customerEmail:'customerEmail',customerAddress:'customerAddress',discount:'discount',tax:'tax',shipping:'shipping',paymentInfo:'paymentInfo',notes:'notes'};
+  const draftBindings={invoiceNumber:'number',invoiceStatus:'status',currency:'currency',invoiceDate:'date',dueDate:'due',customerName:'customerName',customerPhone:'customerPhone',customerEmail:'customerEmail',customerAddress:'customerAddress',discount:'discount',tax:'tax',taxMode:'taxMode',shipping:'shipping',paymentInfo:'paymentInfo',notes:'notes'};
   Object.entries(draftBindings).forEach(([id,key])=>{
     const el=$(`#${id}`); if(!el)return;
     el.addEventListener('focus',()=>{el.dataset.before=JSON.stringify(state.draft?.[key]??'');},{passive:true});
@@ -390,6 +346,8 @@
     });
   });
   $('#publicEnabled')?.addEventListener('change',()=>{ pushUndo(); state.draft.publicEnabled=$('#publicEnabled').checked; afterDraftChange(); });
+  $('#taxInclusive')?.addEventListener('change',()=>{pushUndo();state.draft.taxInclusive=$('#taxInclusive').checked;afterDraftChange();});
+  $('#invoiceTags')?.addEventListener('input',()=>{state.draft.tags=$('#invoiceTags').value.split(',').map(x=>x.trim()).filter(Boolean);afterDraftChange();});
   $('#customerSelect')?.addEventListener('change',()=>{
     const c=state.customers.find(x=>x.id===$('#customerSelect').value); if(!c)return;
     pushUndo(); Object.assign(state.draft,{customerId:c.id,customerName:c.name,customerPhone:c.phone||'',customerEmail:c.email||'',customerAddress:c.address||''}); syncCustomerFields(); afterDraftChange();
@@ -400,7 +358,7 @@
   }
   function syncDraftToForm(){
     if(!state.draft)return;
-    $('#invoiceNumber').value=state.draft.number||'';$('#invoiceStatus').value=state.draft.status||'draft';$('#currency').value=state.draft.currency||'IDR';$('#invoiceDate').value=state.draft.date||todayPlus(0);$('#dueDate').value=state.draft.due||todayPlus(7);$('#discount').value=state.draft.discount||0;$('#tax').value=state.draft.tax||0;$('#shipping').value=state.draft.shipping||0;$('#paymentInfo').value=state.draft.paymentInfo||'';$('#notes').value=state.draft.notes||'';$('#publicEnabled').checked=state.draft.publicEnabled!==false;syncCustomerFields();renderItems();renderPaymentSummary();
+    $('#invoiceNumber').value=state.draft.number||'';$('#invoiceStatus').value=state.draft.status||'draft';$('#currency').value=state.draft.currency||'IDR';$('#invoiceDate').value=state.draft.date||todayPlus(0);$('#dueDate').value=state.draft.due||todayPlus(7);$('#discount').value=state.draft.discount||0;$('#tax').value=state.draft.tax||0;if($('#taxMode'))$('#taxMode').value=state.draft.taxMode||'invoice';if($('#taxInclusive'))$('#taxInclusive').checked=Boolean(state.draft.taxInclusive);if($('#invoiceTags'))$('#invoiceTags').value=(state.draft.tags||[]).join(', ');$('#shipping').value=state.draft.shipping||0;$('#paymentInfo').value=state.draft.paymentInfo||'';$('#notes').value=state.draft.notes||'';$('#publicEnabled').checked=state.draft.publicEnabled!==false;syncCustomerFields();renderItems();renderPaymentSummary();
   }
   function afterDraftChange(){ persistLocalDraft(); renderInvoice(); queueAutosave(); }
   function persistLocalDraft(){ if(state.draft) localStorage.setItem(localDraftKey(),JSON.stringify(state.draft)); }
@@ -412,32 +370,27 @@
 
   function renderItems(){
     if(!state.draft)return;
-    $('#itemsList').innerHTML=(state.draft.items||[]).map((item,index)=>`<div class="item-row-cloud" data-item-row="${index}">
+    const units=['pcs','unit','paket','jam','hari','bulan','kg','gram','liter','meter','orang','set'];
+    $('#itemsList').innerHTML=(state.draft.items||[]).map((item,index)=>`<div class="item-row-cloud item-row-v6" data-item-row="${index}">
       <div class="item-name-wrap"><select class="item-product" data-i="${index}"><option value="">Pilih produk / isi manual</option>${state.products.map(p=>`<option value="${p.id}" ${p.id===item.productId?'selected':''}>${escape(p.name)} · ${money(p.price,state.draft.currency)}</option>`).join('')}</select><input class="item-name" data-i="${index}" value="${escape(item.name||'')}" placeholder="Nama item"><input class="item-description" data-i="${index}" value="${escape(item.description||'')}" placeholder="Deskripsi opsional"></div>
       <label class="qty-wrap"><span>Qty</span><input class="item-qty" data-i="${index}" type="number" min="0" step="0.01" value="${Number(item.qty)||0}"></label>
-      <label><span>Satuan</span><input class="item-unit" data-i="${index}" value="${escape(item.unit||'')}"></label>
+      <label><span>Satuan</span><input class="item-unit" data-i="${index}" list="unitList" value="${escape(item.unit||'')}"></label>
       <label class="price-wrap"><span>Harga</span><input class="item-price" data-i="${index}" type="number" min="0" value="${Number(item.price)||0}"></label>
+      <label><span>Diskon %</span><input class="item-discount" data-i="${index}" type="number" min="0" max="100" value="${Number(item.discount)||0}"></label>
+      <label><span>Pajak %</span><input class="item-tax" data-i="${index}" type="number" min="0" max="100" value="${Number(item.taxRate)||0}" ${state.draft.taxMode==='item'?'':'disabled'}></label>
       <button class="remove-item" data-remove-item="${index}" type="button">×</button>
-    </div>`).join('');
+    </div>`).join('')+`<datalist id="unitList">${units.map(u=>`<option value="${u}">`).join('')}</datalist>`;
   }
   $('#itemsList')?.addEventListener('input',e=>{
     const el=e.target; const i=Number(el.dataset.i); if(Number.isNaN(i)||!state.draft?.items[i])return;
-    const map={ 'item-name':'name','item-description':'description','item-qty':'qty','item-unit':'unit','item-price':'price' };
+    const map={'item-name':'name','item-description':'description','item-qty':'qty','item-unit':'unit','item-price':'price','item-discount':'discount','item-tax':'taxRate'};
     const cls=Object.keys(map).find(c=>el.classList.contains(c)); if(!cls)return;
-    state.draft.items[i][map[cls]]=['qty','price'].includes(map[cls])?Number(el.value)||0:el.value;
-    afterDraftChange();
+    state.draft.items[i][map[cls]]=['qty','price','discount','taxRate'].includes(map[cls])?Number(el.value)||0:el.value; afterDraftChange();
   });
-  $('#itemsList')?.addEventListener('change',e=>{
-    if(!e.target.classList.contains('item-product'))return;
-    const i=Number(e.target.dataset.i),p=state.products.find(x=>x.id===e.target.value); if(!p)return;
-    pushUndo(); state.draft.items[i]={productId:p.id,name:p.name,description:p.description||'',qty:1,unit:p.unit||'pcs',price:Number(p.price)||0}; renderItems();afterDraftChange();
-  });
-  $('#itemsList')?.addEventListener('click',e=>{
-    const btn=e.target.closest('[data-remove-item]'); if(!btn)return;
-    const i=Number(btn.dataset.removeItem); if(state.draft.items.length<=1){toast('Invoice minimal memiliki satu item.');return;}
-    pushUndo(); state.draft.items.splice(i,1);renderItems();afterDraftChange();
-  });
-  $('#addItemBtn')?.addEventListener('click',()=>{pushUndo();state.draft.items.push({productId:'',name:'Item baru',description:'',qty:1,unit:'pcs',price:0});renderItems();afterDraftChange();});
+  $('#itemsList')?.addEventListener('change',e=>{if(!e.target.classList.contains('item-product'))return;const i=Number(e.target.dataset.i),p=state.products.find(x=>x.id===e.target.value);if(!p)return;pushUndo();state.draft.items[i]={productId:p.id,name:p.name,description:p.description||'',qty:1,unit:p.unit||'pcs',price:Number(p.price)||0,discount:0,taxRate:0};renderItems();afterDraftChange();});
+  $('#itemsList')?.addEventListener('click',e=>{const btn=e.target.closest('[data-remove-item]');if(!btn)return;const i=Number(btn.dataset.removeItem);if(state.draft.items.length<=1){toast('Invoice minimal memiliki satu item.');return;}pushUndo();state.draft.items.splice(i,1);renderItems();afterDraftChange();});
+  $('#addItemBtn')?.addEventListener('click',()=>{pushUndo();state.draft.items.push({productId:'',name:'Item baru',description:'',qty:1,unit:'pcs',price:0,discount:0,taxRate:0});renderItems();afterDraftChange();});
+
 
   function renderInvoice(){
     if(!state.profile||!state.draft)return;
@@ -455,7 +408,7 @@
 
   function invoicePayload(){
     const d=state.draft,c=R.calc(d);
-    return {id:d.id||undefined,number:d.number,status:d.status||'draft',invoice_date:d.date,due_date:d.due,currency:d.currency,customer_id:d.customerId||null,customer_snapshot:{name:d.customerName||'',phone:d.customerPhone||'',email:d.customerEmail||'',address:d.customerAddress||''},items:d.items,discount:Number(d.discount)||0,tax:Number(d.tax)||0,shipping:Number(d.shipping)||0,payment_info:d.paymentInfo||'',notes:d.notes||'',template_id:d.templateId||state.selectedTemplate.id,subtotal:c.subtotal,total:c.total,public_enabled:d.publicEnabled!==false};
+    return {id:d.id||undefined,number:d.number,status:d.status||'draft',invoice_date:d.date,due_date:d.due,currency:d.currency,customer_id:d.customerId||null,customer_snapshot:{name:d.customerName||'',phone:d.customerPhone||'',email:d.customerEmail||'',address:d.customerAddress||''},items:d.items,discount:Number(d.discount)||0,tax:Number(d.tax)||0,tax_inclusive:Boolean(d.taxInclusive),shipping:Number(d.shipping)||0,tags:d.tags||[],payment_info:d.paymentInfo||'',notes:d.notes||'',template_id:d.templateId||state.selectedTemplate.id,subtotal:c.subtotal,total:c.total,public_enabled:d.publicEnabled!==false};
   }
   async function saveCurrentInvoice(quiet=false){
     if(!state.draft)return null;
@@ -472,7 +425,7 @@
       renderDashboard();renderInvoices();
       if(!quiet)toast('Invoice tersimpan di cloud.');
       return row;
-    }catch(err){ $('#autosaveState').textContent='Gagal sinkron'; if(!quiet)toast(err.message||'Gagal menyimpan invoice','error'); console.error(err); return null; }
+    }catch(err){ $('#autosaveState').textContent=navigator.onLine?'Gagal sinkron':'Tersimpan offline'; if(!navigator.onLine||/network|fetch/i.test(err?.message||'')){window.InvoiceKuSuite?.queueOffline?.('invoice',invoicePayload());localStorage.setItem(localDraftKey(),JSON.stringify(state.draft));if(!quiet)toast('Koneksi terputus. Perubahan masuk antrean sinkronisasi.');}else if(!quiet)toast(err.message||'Gagal menyimpan invoice','error'); console.error(err); return null; }
     finally{state.autosaveBusy=false;setCloudBusy(false);}
   }
   $('#saveInvoiceBtn')?.addEventListener('click',()=>saveCurrentInvoice(false));
@@ -481,7 +434,7 @@
   async function openInvoice(id){
     try{
       const row=await Cloud.getInvoice(id);
-      state.draft={id:row.id,publicToken:row.public_token,number:row.number,status:row.status,date:row.invoice_date,due:row.due_date,currency:row.currency,customerId:row.customer_id||'',customerName:row.customer_snapshot?.name||'',customerPhone:row.customer_snapshot?.phone||'',customerEmail:row.customer_snapshot?.email||'',customerAddress:row.customer_snapshot?.address||'',items:row.items||[],discount:Number(row.discount)||0,tax:Number(row.tax)||0,shipping:Number(row.shipping)||0,paymentInfo:row.payment_info||'',notes:row.notes||'',templateId:row.template_id||'0-0',publicEnabled:row.public_enabled!==false,payments:row.payments||[]};
+      state.draft={id:row.id,publicToken:row.public_token,number:row.number,status:row.status,date:row.invoice_date,due:row.due_date,currency:row.currency,customerId:row.customer_id||'',customerName:row.customer_snapshot?.name||'',customerPhone:row.customer_snapshot?.phone||'',customerEmail:row.customer_snapshot?.email||'',customerAddress:row.customer_snapshot?.address||'',items:(row.items||[]).map(x=>({...x,discount:Number(x.discount)||0,taxRate:Number(x.taxRate)||0})),discount:Number(row.discount)||0,tax:Number(row.tax)||0,taxMode:(row.items||[]).some(x=>Number(x.taxRate))?'item':'invoice',taxInclusive:Boolean(row.tax_inclusive),shipping:Number(row.shipping)||0,tags:row.tags||[],paymentInfo:row.payment_info||'',notes:row.notes||'',templateId:row.template_id||'0-0',publicEnabled:row.public_enabled!==false,payments:row.payments||[],documentType:'invoice'};
       state.undo=[];state.redo=[];selectTemplateInternal(state.draft.templateId,false);syncDraftToForm();renderInvoice();renderPaymentSummary();persistLocalDraft();$('#editorTitle').textContent=row.number;$('#autosaveState').textContent='Tersimpan di cloud';switchTab('editor');
     }catch(err){toast(err.message,'error');}
   }
@@ -528,17 +481,34 @@
   }
   async function captureInvoice(){
     await loadScript(EXPORT_LIBS.html2canvas,'html2canvas');
-    const paper=$('#invoicePaper'),canvasWrap=$('#paperCanvas'),prev=canvasWrap.style.transform;canvasWrap.style.transform='none';await new Promise(requestAnimationFrame);
-    try{return await window.html2canvas(paper,{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false,width:794,height:1123,windowWidth:794,windowHeight:1123});}
+    const paper=$('#invoicePaper'),canvasWrap=$('#paperCanvas'),prev=canvasWrap.style.transform;canvasWrap.style.transform='none';await new Promise(requestAnimationFrame);const height=Math.max(1123,paper.scrollHeight);
+    try{return await window.html2canvas(paper,{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false,width:794,height,windowWidth:794,windowHeight:height});}
     finally{canvasWrap.style.transform=prev;requestAnimationFrame(fitInvoicePreview);}
   }
   async function downloadPNG(){try{toast('Menyiapkan PNG...');const canvas=await captureInvoice();const a=document.createElement('a');a.download=`${state.draft.number||'invoice'}.png`;a.href=canvas.toDataURL('image/png',1);a.click();toast('PNG selesai.');}catch(err){toast(err.message||'Gagal membuat PNG','error');}}
-  async function downloadPDF(){try{toast('Menyiapkan PDF...');await loadScript(EXPORT_LIBS.jspdf,'jspdf');const canvas=await captureInvoice();const img=canvas.toDataURL('image/jpeg',.97);const {jsPDF}=window.jspdf;const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true});pdf.addImage(img,'JPEG',0,0,210,297,undefined,'FAST');pdf.save(`${state.draft.number||'invoice'}.pdf`);toast('PDF selesai.');}catch(err){toast(err.message||'Gagal membuat PDF','error');}}
+  async function downloadPDF(){
+    try{
+      toast('Menyiapkan PDF...');await loadScript(EXPORT_LIBS.jspdf,'jspdf');await loadScript(EXPORT_LIBS.html2canvas,'html2canvas');
+      const {jsPDF}=window.jspdf,pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true});
+      const items=state.draft?.items||[],perPage=12,chunks=[];for(let i=0;i<items.length;i+=perPage)chunks.push(items.slice(i,i+perPage));if(!chunks.length)chunks.push([]);
+      const holder=document.createElement('div');holder.style.cssText='position:fixed;left:-10000px;top:0;width:794px;background:#fff;z-index:-1';document.body.appendChild(holder);
+      try{
+        for(let i=0;i<chunks.length;i++){
+          const pageDraft=clone(state.draft);pageDraft.items=chunks[i];pageDraft._pageIndex=i+1;pageDraft._pageCount=chunks.length;pageDraft._pageNotLast=i<chunks.length-1;
+          const paper=document.createElement('div');paper.className='invoice-paper';paper.style.cssText='width:794px;min-height:1123px;height:1123px;background:white;overflow:hidden';holder.innerHTML='';holder.appendChild(paper);R.render(paper,state.profile,pageDraft,state.selectedTemplate);await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+          const canvas=await window.html2canvas(paper,{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false,width:794,height:1123,windowWidth:794,windowHeight:1123});
+          if(i)pdf.addPage();pdf.addImage(canvas.toDataURL('image/jpeg',.96),'JPEG',0,0,210,297,undefined,'FAST');pdf.setFontSize(8);pdf.setTextColor(125);pdf.text(`Halaman ${i+1} / ${chunks.length}`,200,292,{align:'right'});
+        }
+      }finally{holder.remove();}
+      pdf.save(`${state.draft.number||'invoice'}.pdf`);toast(`PDF ${chunks.length} halaman selesai.`);
+    }catch(err){toast(err.message||'Gagal membuat PDF','error');}
+  }
+
   $('#downloadPngBtn')?.addEventListener('click',downloadPNG);$('#downloadPdfBtn')?.addEventListener('click',downloadPDF);$('#mobilePngBtn')?.addEventListener('click',downloadPNG);$('#mobilePdfBtn')?.addEventListener('click',downloadPDF);
 
   // ---------------- Invoice list / dashboard ----------------
   function renderDashboard(){
-    const list=state.invoices||[];const now=new Date();const month=now.getMonth(),year=now.getFullYear();const baseCurrency=state.profile?.defaultCurrency||'IDR';const baseList=list.filter(i=>i.currency===baseCurrency);
+    const list=(state.invoices||[]).filter(i=>!i.archived);const now=new Date();const month=now.getMonth(),year=now.getFullYear();const baseCurrency=state.profile?.defaultCurrency||'IDR';const baseList=list.filter(i=>i.currency===baseCurrency);
     const monthInvoices=baseList.filter(i=>{const d=new Date(`${i.invoice_date}T00:00:00`);return d.getMonth()===month&&d.getFullYear()===year;});
     const billed=monthInvoices.filter(i=>i.status!=='cancelled').reduce((sum,i)=>sum+(Number(i.total)||0),0);
     const paid=monthInvoices.reduce((sum,i)=>sum+invoicePaid(i),0);
@@ -561,19 +531,22 @@
     $('#revenueChart').innerHTML=months.map(m=>`<div class="revenue-col" title="${m.label}: ${money(m.value,state.profile?.defaultCurrency||'IDR')}"><i class="revenue-bar" style="height:${Math.max(3,(m.value/max)*100)}%"></i><small>${m.label}</small></div>`).join('');
   }
   function invoiceRowHtml(i){
-    return `<div class="invoice-row" data-invoice-row="${i.id}"><div class="invoice-main"><b>${escape(i.number)}</b><span>${escape(i.customer_snapshot?.name||'Tanpa pelanggan')} · ${formatDate(i.invoice_date)}</span></div><div class="invoice-cell"><b>${money(i.total,i.currency)}</b><span>Total</span></div><div class="invoice-cell hide-mid"><b>${money(invoicePaid(i),i.currency)}</b><span>Dibayar</span></div><div><span class="status-pill ${statusClass(i.status)}">${STATUS[i.status]||i.status}</span></div><div class="row-actions"><button class="kebab" data-open-invoice="${i.id}" title="Buka">↗</button><button class="kebab" data-pay-invoice="${i.id}" title="Pembayaran">$</button><button class="kebab" data-share-invoice="${i.id}" title="Kirim">⌁</button><button class="kebab" data-delete-invoice="${i.id}" title="Hapus">×</button></div></div>`;
+    const views=i.invoice_views?.length||0, proofPending=(i.payment_proofs||[]).filter(p=>p.status==='pending').length;
+    return `<div class="invoice-row" data-invoice-row="${i.id}"><label class="bulk-check-wrap hidden"><input type="checkbox" class="bulk-invoice-check" value="${i.id}"></label><div class="invoice-main"><b>${escape(i.number)}</b><span>${escape(i.customer_snapshot?.name||'Tanpa pelanggan')} · ${formatDate(i.invoice_date)}${(i.tags||[]).length?` · ${(i.tags||[]).map(escape).join(', ')}`:''}</span><small>${views?`Dilihat ${views}×`: 'Belum dilihat'}${proofPending?` · ${proofPending} bukti baru`:''}</small></div><div class="invoice-cell"><b>${money(i.total,i.currency)}</b><span>Total</span></div><div class="invoice-cell hide-mid"><b>${money(invoicePaid(i),i.currency)}</b><span>Dibayar</span></div><div><span class="status-pill ${statusClass(i.status)}">${STATUS[i.status]||i.status}</span></div><div class="row-actions"><button class="kebab" data-open-invoice="${i.id}" title="Buka">↗</button><button class="kebab" data-pay-invoice="${i.id}" title="Pembayaran">$</button><button class="kebab" data-share-invoice="${i.id}" title="Kirim">⌁</button><button class="kebab" data-history-invoice="${i.id}" title="Riwayat">↶</button>${i.status==='paid'?`<button class="kebab" data-receipt-invoice="${i.id}" title="Kwitansi">✓</button>`:''}${i.archived?`<button class="kebab" data-unarchive-invoice="${i.id}" title="Kembalikan dari arsip">↺</button>`:''}<button class="kebab" data-delete-invoice="${i.id}" title="Hapus">×</button></div></div>`;
   }
+
   function renderInvoices(){
     const q=($('#invoiceSearch')?.value||'').toLowerCase(),filter=$('#invoiceFilter')?.value||'all';
-    const list=state.invoices.filter(i=>(filter==='all'||i.status===filter)&&(!q||`${i.number} ${i.customer_snapshot?.name||''}`.toLowerCase().includes(q)));
+    const list=state.invoices.filter(i=>((filter==='archived'&&i.archived)||(filter!=='archived'&&!i.archived&&(filter==='all'||i.status===filter)))&&(!q||`${i.number} ${i.customer_snapshot?.name||''} ${(i.tags||[]).join(' ')}`.toLowerCase().includes(q)));
     $('#invoiceList').innerHTML=list.length?list.map(invoiceRowHtml).join(''):'<div class="empty-state"><b>Tidak ada invoice yang cocok</b><span>Ubah pencarian atau buat invoice baru.</span></div>';
-    $('#invoiceNavCount').textContent=state.invoices.length;
+    $('#invoiceNavCount').textContent=state.invoices.filter(i=>!i.archived).length;
   }
   $('#invoiceSearch')?.addEventListener('input',renderInvoices);$('#invoiceFilter')?.addEventListener('change',renderInvoices);
   document.addEventListener('click',async e=>{
     const open=e.target.closest('[data-open-invoice]'); if(open){openInvoice(open.dataset.openInvoice);return;}
     const pay=e.target.closest('[data-pay-invoice]'); if(pay){openPayment(pay.dataset.payInvoice);return;}
     const share=e.target.closest('[data-share-invoice]'); if(share){await shareInvoiceById(share.dataset.shareInvoice);return;}
+    const unarchive=e.target.closest('[data-unarchive-invoice]');if(unarchive){try{await Cloud.bulkInvoicePatch([unarchive.dataset.unarchiveInvoice],{archived:false});state.invoices=await Cloud.listInvoices();renderDashboard();renderInvoices();toast('Invoice dikembalikan dari arsip.');}catch(err){toast(err.message,'error');}return;}
     const del=e.target.closest('[data-delete-invoice]'); if(del&&confirm('Hapus invoice ini secara permanen?')){try{await Cloud.deleteInvoice(del.dataset.deleteInvoice);state.invoices=state.invoices.filter(x=>x.id!==del.dataset.deleteInvoice);renderDashboard();renderInvoices();toast('Invoice dihapus.');}catch(err){toast(err.message,'error');}return;}
   });
   function openPayment(id){
@@ -598,10 +571,10 @@
     refreshCustomerSelects();
   }
   function openCustomerForm(id=''){
-    const c=state.customers.find(x=>x.id===id);$('#customerId').value=c?.id||'';$('#customerFormName').value=c?.name||'';$('#customerFormPhone').value=c?.phone||'';$('#customerFormEmail').value=c?.email||'';$('#customerFormTax').value=c?.tax_id||'';$('#customerFormAddress').value=c?.address||'';$('#customerFormNotes').value=c?.notes||'';$('#customerModalTitle').textContent=c?'Edit pelanggan':'Tambah pelanggan';openModal('customerModal');
+    const c=state.customers.find(x=>x.id===id);$('#customerId').value=c?.id||'';$('#customerFormName').value=c?.name||'';$('#customerFormPhone').value=c?.phone||'';$('#customerFormEmail').value=c?.email||'';$('#customerFormTax').value=c?.tax_id||'';$('#customerFormAddress').value=c?.address||'';$('#customerFormNotes').value=c?.notes||'';if($('#customerFormTags'))$('#customerFormTags').value=(c?.tags||[]).join(', ');$('#customerModalTitle').textContent=c?'Edit pelanggan':'Tambah pelanggan';openModal('customerModal');
   }
   $('#addCustomerBtn')?.addEventListener('click',()=>openCustomerForm());$('#quickAddCustomer')?.addEventListener('click',()=>openCustomerForm());$('#customerSearch')?.addEventListener('input',renderCustomers);
-  $('#customerForm')?.addEventListener('submit',async e=>{e.preventDefault();try{await Cloud.saveCustomer({id:$('#customerId').value||undefined,name:$('#customerFormName').value.trim(),phone:$('#customerFormPhone').value.trim(),email:$('#customerFormEmail').value.trim(),tax_id:$('#customerFormTax').value.trim(),address:$('#customerFormAddress').value.trim(),notes:$('#customerFormNotes').value.trim()});state.customers=await Cloud.listCustomers();renderCustomers();closeModal('customerModal');toast('Pelanggan tersimpan.');}catch(err){toast(err.message,'error');}});
+  $('#customerForm')?.addEventListener('submit',async e=>{e.preventDefault();try{await Cloud.saveCustomer({id:$('#customerId').value||undefined,name:$('#customerFormName').value.trim(),phone:$('#customerFormPhone').value.trim(),email:$('#customerFormEmail').value.trim(),tax_id:$('#customerFormTax').value.trim(),address:$('#customerFormAddress').value.trim(),notes:$('#customerFormNotes').value.trim(),tags:($('#customerFormTags')?.value||'').split(',').map(x=>x.trim()).filter(Boolean)});state.customers=await Cloud.listCustomers();renderCustomers();closeModal('customerModal');toast('Pelanggan tersimpan.');}catch(err){toast(err.message,'error');}});
   $('#customerGrid')?.addEventListener('click',async e=>{
     const edit=e.target.closest('[data-edit-customer]');if(edit){openCustomerForm(edit.dataset.editCustomer);return;}
     const use=e.target.closest('[data-use-customer]');if(use){const c=state.customers.find(x=>x.id===use.dataset.useCustomer);await newInvoice(false);Object.assign(state.draft,{customerId:c.id,customerName:c.name,customerPhone:c.phone||'',customerEmail:c.email||'',customerAddress:c.address||''});syncDraftToForm();renderInvoice();switchTab('editor');return;}
@@ -610,15 +583,15 @@
 
   // ---------------- Products ----------------
   function renderProducts(){
-    const q=($('#productSearch')?.value||'').toLowerCase();const list=state.products.filter(p=>!q||`${p.name} ${p.sku} ${p.description}`.toLowerCase().includes(q));
+    const q=($('#productSearch')?.value||'').toLowerCase();const list=state.products.filter(p=>!q||`${p.name} ${p.sku} ${p.description} ${(p.tags||[]).join(' ')}`.toLowerCase().includes(q));
     $('#productGrid').innerHTML=list.length?list.map(p=>`<article class="data-card"><div class="data-title"><h3>${escape(p.name)}</h3><button class="kebab" data-edit-product="${p.id}">•••</button></div><p>${escape(p.description||'Tanpa deskripsi')}</p><p class="price-big">${money(p.price,state.profile?.defaultCurrency||'IDR')}</p><div class="data-meta"><span>${escape(p.unit||'pcs')}</span>${p.sku?`<span>${escape(p.sku)}</span>`:''}</div><footer><button class="small-btn" data-add-product-to-invoice="${p.id}">Tambah ke invoice</button><button class="small-btn" data-delete-product="${p.id}">Hapus</button></footer></article>`).join(''):'<div class="empty-state"><b>Belum ada produk atau jasa</b><span>Simpan item yang sering ditagihkan.</span></div>';
     if(state.draft)renderItems();
   }
   function openProductForm(id=''){
-    const p=state.products.find(x=>x.id===id);$('#productId').value=p?.id||'';$('#productFormName').value=p?.name||'';$('#productFormSku').value=p?.sku||'';$('#productFormUnit').value=p?.unit||'pcs';$('#productFormPrice').value=Number(p?.price)||0;$('#productFormDescription').value=p?.description||'';$('#productModalTitle').textContent=p?'Edit produk / jasa':'Tambah produk / jasa';openModal('productModal');
+    const p=state.products.find(x=>x.id===id);$('#productId').value=p?.id||'';$('#productFormName').value=p?.name||'';$('#productFormSku').value=p?.sku||'';$('#productFormUnit').value=p?.unit||'pcs';$('#productFormPrice').value=Number(p?.price)||0;$('#productFormDescription').value=p?.description||'';if($('#productFormTags'))$('#productFormTags').value=(p?.tags||[]).join(', ');$('#productModalTitle').textContent=p?'Edit produk / jasa':'Tambah produk / jasa';openModal('productModal');
   }
   $('#addProductBtn')?.addEventListener('click',()=>openProductForm());$('#productSearch')?.addEventListener('input',renderProducts);
-  $('#productForm')?.addEventListener('submit',async e=>{e.preventDefault();try{await Cloud.saveProduct({id:$('#productId').value||undefined,name:$('#productFormName').value.trim(),sku:$('#productFormSku').value.trim(),unit:$('#productFormUnit').value.trim()||'pcs',price:Number($('#productFormPrice').value)||0,description:$('#productFormDescription').value.trim()});state.products=await Cloud.listProducts();renderProducts();closeModal('productModal');toast('Produk tersimpan.');}catch(err){toast(err.message,'error');}});
+  $('#productForm')?.addEventListener('submit',async e=>{e.preventDefault();try{await Cloud.saveProduct({id:$('#productId').value||undefined,name:$('#productFormName').value.trim(),sku:$('#productFormSku').value.trim(),unit:$('#productFormUnit').value.trim()||'pcs',price:Number($('#productFormPrice').value)||0,description:$('#productFormDescription').value.trim(),tags:($('#productFormTags')?.value||'').split(',').map(x=>x.trim()).filter(Boolean)});state.products=await Cloud.listProducts();renderProducts();closeModal('productModal');toast('Produk tersimpan.');}catch(err){toast(err.message,'error');}});
   $('#productGrid')?.addEventListener('click',async e=>{
     const edit=e.target.closest('[data-edit-product]');if(edit){openProductForm(edit.dataset.editProduct);return;}
     const add=e.target.closest('[data-add-product-to-invoice]');if(add){const p=state.products.find(x=>x.id===add.dataset.addProductToInvoice);if(!state.draft)await newInvoice(false);pushUndo();state.draft.items.push({productId:p.id,name:p.name,description:p.description||'',qty:1,unit:p.unit||'pcs',price:Number(p.price)||0});renderItems();afterDraftChange();switchTab('editor');return;}
@@ -653,22 +626,22 @@
     const card=e.target.closest('[data-template-id]');if(card){pushUndo();selectTemplateInternal(card.dataset.templateId,true);afterDraftChange();switchTab('editor');toast(`Template ${state.selectedTemplate.name} dipilih.`);}
   });
   $('#openTemplateBuilder')?.addEventListener('click',()=>{ $('#builderLayout').innerHTML=T.layouts.map(l=>`<option value="${l.id}">${l.name}</option>`).join('');updateBuilderPreview();openModal('templateBuilderModal'); });
-  ['builderLayout','builderAccent','builderSoft','builderName'].forEach(id=>$(`#${id}`)?.addEventListener('input',updateBuilderPreview));
+  ['builderLayout','builderAccent','builderSoft','builderName','builderFont','builderRadius','builderLogoSize','builderMargin','builderWatermark','builderFooter'].forEach(id=>$(`#${id}`)?.addEventListener('input',updateBuilderPreview));
   function updateBuilderPreview(){
-    const t={id:'builder',name:$('#builderName')?.value||'Custom Template',category:'Custom',palette:{accent:$('#builderAccent')?.value||'#111827',soft:$('#builderSoft')?.value||'#f3f4f6'},layout:T.layouts.find(l=>l.id===($('#builderLayout')?.value||'classic'))||T.layouts[0]};
+    const t={id:'builder',name:$('#builderName')?.value||'Custom Template',category:'Custom',palette:{accent:$('#builderAccent')?.value||'#111827',soft:$('#builderSoft')?.value||'#f3f4f6'},layout:T.layouts.find(l=>l.id===($('#builderLayout')?.value||'classic'))||T.layouts[0],settings:{font:$('#builderFont')?.value,radius:Number($('#builderRadius')?.value)||10,logoSize:Number($('#builderLogoSize')?.value)||56,margin:Number($('#builderMargin')?.value)||46,watermark:$('#builderWatermark')?.value||'',footerText:$('#builderFooter')?.value||''}};
     if($('#builderPreview'))$('#builderPreview').innerHTML=T.miniPreviewHtml(t);
   }
-  $('#templateBuilderForm')?.addEventListener('submit',async e=>{e.preventDefault();try{await Cloud.saveCustomTemplate({name:$('#builderName').value.trim(),category:$('#builderCategory').value.trim()||'Custom',settings:{layout:$('#builderLayout').value,accent:$('#builderAccent').value,soft:$('#builderSoft').value}});state.customTemplates=await Cloud.listCustomTemplates();renderTemplates(false);closeModal('templateBuilderModal');toast('Template custom tersimpan.');}catch(err){toast(err.message,'error');}});
+  $('#templateBuilderForm')?.addEventListener('submit',async e=>{e.preventDefault();try{await Cloud.saveCustomTemplate({name:$('#builderName').value.trim(),category:$('#builderCategory').value.trim()||'Custom',settings:{layout:$('#builderLayout').value,accent:$('#builderAccent').value,soft:$('#builderSoft').value,font:$('#builderFont').value,radius:Number($('#builderRadius').value)||10,logoSize:Number($('#builderLogoSize').value)||56,margin:Number($('#builderMargin').value)||46,watermark:$('#builderWatermark').value.trim(),footerText:$('#builderFooter').value.trim()}});state.customTemplates=await Cloud.listCustomTemplates();renderTemplates(false);closeModal('templateBuilderModal');toast('Template custom tersimpan.');}catch(err){toast(err.message,'error');}});
 
   // ---------------- Recurring ----------------
   function renderRecurring(){
-    $('#recurringList').innerHTML=state.recurring.length?state.recurring.map(r=>`<article class="data-card"><div class="data-title"><h3>${escape(r.name)}</h3><span class="status-pill ${r.active?'status-paid':'status-draft'}">${r.active?'Aktif':'Nonaktif'}</span></div><p>${escape(r.customers?.name||'Pelanggan dihapus')} · setiap ${r.interval_months} bulan</p><div class="data-meta"><span>Berikutnya ${formatDate(r.next_run)}</span><span>Jatuh tempo +${r.due_days} hari</span></div><footer><button class="small-btn" data-toggle-recurring="${r.id}">${r.active?'Nonaktifkan':'Aktifkan'}</button><button class="small-btn" data-delete-recurring="${r.id}">Hapus</button></footer></article>`).join(''):'<div class="empty-state"><b>Belum ada recurring invoice</b><span>Buat aturan untuk tagihan yang berulang setiap bulan atau beberapa bulan.</span></div>';
+    $('#recurringList').innerHTML=state.recurring.length?state.recurring.map(r=>`<article class="data-card"><div class="data-title"><h3>${escape(r.name)}</h3><span class="status-pill ${r.active?'status-paid':'status-draft'}">${r.active?'Aktif':'Nonaktif'}</span></div><p>${escape(r.customers?.name||'Pelanggan dihapus')} · setiap ${r.interval_value||r.interval_months||1} ${{day:'hari',week:'minggu',month:'bulan',year:'tahun'}[r.interval_unit||'month']||'bulan'}</p><div class="data-meta"><span>Berikutnya ${formatDate(r.next_run)}</span><span>Jatuh tempo +${r.due_days} hari</span></div><footer><button class="small-btn" data-toggle-recurring="${r.id}">${r.active?'Nonaktifkan':'Aktifkan'}</button><button class="small-btn" data-delete-recurring="${r.id}">Hapus</button></footer></article>`).join(''):'<div class="empty-state"><b>Belum ada recurring invoice</b><span>Buat aturan untuk tagihan yang berulang setiap bulan atau beberapa bulan.</span></div>';
   }
   $('#addRecurringBtn')?.addEventListener('click',()=>{
     if(!state.draft){toast('Buat invoice contoh terlebih dahulu.');return;} if(!state.customers.length){toast('Tambahkan pelanggan terlebih dahulu.');switchTab('customers');return;}
     refreshCustomerSelects();$('#recurringCustomer').value=state.draft.customerId||'';$('#recurringName').value=`${state.draft.customerName||'Pelanggan'} - Bulanan`;$('#recurringStart').value=todayPlus(0);$('#recurringDueDays').value=state.profile?.defaultDueDays||7;openModal('recurringModal');
   });
-  $('#recurringForm')?.addEventListener('submit',async e=>{e.preventDefault();try{const start=$('#recurringStart').value;await Cloud.saveRecurring({name:$('#recurringName').value.trim(),customer_id:$('#recurringCustomer').value,template_id:state.draft.templateId,currency:state.draft.currency,items:state.draft.items,discount:state.draft.discount,tax:state.draft.tax,shipping:state.draft.shipping,payment_info:state.draft.paymentInfo,notes:state.draft.notes,interval_months:Number($('#recurringInterval').value)||1,due_days:Number($('#recurringDueDays').value)||7,start_date:start,next_run:start,end_date:$('#recurringEnd').value||null,active:true});state.recurring=await Cloud.listRecurring();renderRecurring();closeModal('recurringModal');toast('Recurring invoice aktif.');}catch(err){toast(err.message,'error');}});
+  $('#recurringForm')?.addEventListener('submit',async e=>{e.preventDefault();try{const start=$('#recurringStart').value;await Cloud.saveRecurring({name:$('#recurringName').value.trim(),customer_id:$('#recurringCustomer').value,template_id:state.draft.templateId,currency:state.draft.currency,items:state.draft.items,discount:state.draft.discount,tax:state.draft.tax,tax_mode:state.draft.taxMode||'invoice',tax_inclusive:Boolean(state.draft.taxInclusive),shipping:state.draft.shipping,payment_info:state.draft.paymentInfo,notes:state.draft.notes,interval_months:$('#recurringIntervalUnit').value==='month'?(Number($('#recurringIntervalValue').value)||1):1,interval_value:Number($('#recurringIntervalValue').value)||1,interval_unit:$('#recurringIntervalUnit').value,due_days:Number($('#recurringDueDays').value)||7,start_date:start,next_run:start,end_date:$('#recurringEnd').value||null,active:true});state.recurring=await Cloud.listRecurring();renderRecurring();closeModal('recurringModal');toast('Recurring invoice aktif.');}catch(err){toast(err.message,'error');}});
   $('#recurringList')?.addEventListener('click',async e=>{
     const toggle=e.target.closest('[data-toggle-recurring]');if(toggle){const r=state.recurring.find(x=>x.id===toggle.dataset.toggleRecurring);try{await Cloud.saveRecurring({...r,active:!r.active});state.recurring=await Cloud.listRecurring();renderRecurring();}catch(err){toast(err.message,'error');}return;}
     const del=e.target.closest('[data-delete-recurring]');if(del&&confirm('Hapus aturan recurring ini?')){try{await Cloud.deleteRecurring(del.dataset.deleteRecurring);state.recurring=await Cloud.listRecurring();renderRecurring();}catch(err){toast(err.message,'error');}}
@@ -695,7 +668,7 @@
 
   // ---------------- Settings ----------------
   function loadSettings(){
-    const p=state.profile;if(!p)return;$('#settingsName').value=p.name;$('#settingsPhone').value=p.phone;$('#settingsAddress').value=p.address;$('#settingsEmail').value=p.email;$('#settingsWebsite').value=p.website;$('#settingsBankName').value=p.bankName;$('#settingsBankAccount').value=p.bankAccount;$('#settingsBankHolder').value=p.bankHolder;$('#settingsEwallet').value=p.ewallet;$('#invoicePattern').value=p.invoicePattern;$('#defaultCurrency').value=p.defaultCurrency;$('#defaultDueDays').value=p.defaultDueDays;setImagePreview('#settingsLogoPreview',p.logo,'LOGO');setImagePreview('#settingsSignaturePreview',p.signature,'TTD');setImagePreview('#settingsQrisPreview',p.qris,'QRIS');$('#accountInfo').innerHTML=`<b>${escape(Cloud.user()?.email||'Akun InvoiceKu')}</b><span>ID akun: ${escape(Cloud.user()?.id||'')}</span>`;
+    const p=state.profile;if(!p)return;$('#settingsName').value=p.name;$('#settingsPhone').value=p.phone;$('#settingsAddress').value=p.address;$('#settingsEmail').value=p.email;$('#settingsWebsite').value=p.website;$('#settingsBankName').value=p.bankName;$('#settingsBankAccount').value=p.bankAccount;$('#settingsBankHolder').value=p.bankHolder;$('#settingsEwallet').value=p.ewallet;$('#invoicePattern').value=p.invoicePattern;$('#defaultCurrency').value=p.defaultCurrency;$('#defaultDueDays').value=p.defaultDueDays;setImagePreview('#settingsLogoPreview',p.logo,'LOGO');setImagePreview('#settingsSignaturePreview',p.signature,'TTD');setImagePreview('#settingsQrisPreview',p.qris,'QRIS');$('#accountInfo').innerHTML=`<b>${escape(Cloud.user()?.email||'Akun InvoiceKu')}</b><span>ID akun: ${escape(Cloud.user()?.id||'')}</span>`;if($('#reminderOffsets'))$('#reminderOffsets').value=(p.reminderOffsets||[-3,0,1,3,7]).join(',');if($('#reminderMessage'))$('#reminderMessage').value=p.reminderMessage||'';
   }
   function setImagePreview(sel,url,label){const el=$(sel);if(!el)return;el.innerHTML=url?`<img src="${escape(url)}" alt="${label}">`:label;}
   $('#settingsForm')?.addEventListener('submit',async e=>{
@@ -707,38 +680,46 @@
     }catch(err){toast(err.message,'error');}finally{btn.disabled=false;}
   });
   $('#numberingForm')?.addEventListener('submit',async e=>{e.preventDefault();try{const p={...state.profile,invoicePattern:$('#invoicePattern').value.trim()||'INV/{YYYY}/{MM}/{SEQ4}',defaultCurrency:$('#defaultCurrency').value,defaultDueDays:Number($('#defaultDueDays').value)||7};state.profile=profileToUi(await Cloud.saveProfile(profileToDb(p)));loadSettings();toast('Format invoice disimpan.');}catch(err){toast(err.message,'error');}});
-  $('#exportDataBtn')?.addEventListener('click',()=>{const payload={profile:state.profile,customers:state.customers,products:state.products,invoices:state.invoices,recurring:state.recurring,customTemplates:state.customTemplates,exportedAt:new Date().toISOString()};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`invoiceku-backup-${todayPlus(0)}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);});
+  $('#exportDataBtn')?.addEventListener('click',()=>{if(window.InvoiceKuSuite?.exportBackup)return window.InvoiceKuSuite.exportBackup();const payload={profile:state.profile,customers:state.customers,products:state.products,invoices:state.invoices,recurring:state.recurring,customTemplates:state.customTemplates,exportedAt:new Date().toISOString()};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`invoiceku-backup-${todayPlus(0)}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);});
 
   // ---------------- Public invoice ----------------
   async function loadPublicInvoice(token){
     if(!Cloud.configured()){showOnly('setupRequired');return;}
     showOnly('publicInvoice');
     try{
-      const data=await Cloud.getPublicInvoice(token);if(!data)throw new Error('Invoice tidak ditemukan atau link dinonaktifkan.');
+      const data=await Cloud.getPublicInvoice(token);if(!data)throw new Error('Invoice tidak ditemukan atau link dinonaktifkan.');Cloud.recordInvoiceView?.(token).catch(()=>{});if($('#publicProofToken'))$('#publicProofToken').value=token;
       const p=data.business||{};const profile={name:p.name,phone:p.phone,address:p.address,email:p.email,website:p.website,logo:p.logo_url,signature:p.signature_url,qris:p.qris_url,bankName:p.bank_name,bankAccount:p.bank_account,bankHolder:p.bank_holder,ewallet:p.ewallet};
-      const d={number:data.number,status:data.status,date:data.invoice_date,due:data.due_date,currency:data.currency,customerName:data.customer?.name||'',customerPhone:data.customer?.phone||'',customerEmail:data.customer?.email||'',customerAddress:data.customer?.address||'',items:data.items||[],discount:Number(data.discount)||0,tax:Number(data.tax)||0,shipping:Number(data.shipping)||0,paymentInfo:data.payment_info||'',notes:data.notes||''};
+      const d={number:data.number,status:data.status,date:data.invoice_date,due:data.due_date,currency:data.currency,customerName:data.customer?.name||'',customerPhone:data.customer?.phone||'',customerEmail:data.customer?.email||'',customerAddress:data.customer?.address||'',items:data.items||[],discount:Number(data.discount)||0,tax:Number(data.tax)||0,taxInclusive:Boolean(data.tax_inclusive),taxMode:(data.items||[]).some(x=>Number(x.taxRate))?'item':'invoice',shipping:Number(data.shipping)||0,paymentInfo:data.payment_info||'',notes:data.notes||''};
       const publicCustom=data.template_custom?[data.template_custom]:[];const template=T.find(data.template_id||'0-0',publicCustom);R.render($('#publicPaper'),profile,d,template);$('#publicInvoiceTitle').textContent=data.number;$('#publicStatus').textContent=STATUS[data.status]||data.status;$('#publicStatus').className=`status-pill ${statusClass(data.status)}`;$('#publicTotal').textContent=money(data.total,data.currency);$('#publicDue').textContent=`Jatuh tempo ${formatDate(data.due_date)} · Dibayar ${money(data.paid_amount,data.currency)}`;
       const bank=[p.bank_name,p.bank_account,p.bank_holder].filter(Boolean).join(' · ');$('#publicPaymentBox').innerHTML=`<b>Pembayaran</b><span>${escape(data.payment_info||bank||p.ewallet||'Hubungi penerbit invoice untuk informasi pembayaran.')}</span>${p.qris_url?`<img src="${escape(p.qris_url)}" alt="QRIS">`:''}`;
-      const phone=normalizePhone(p.phone);$('#publicWhatsapp').onclick=()=>{if(phone)window.open(`https://wa.me/${phone}?text=${encodeURIComponent(`Halo, saya ingin mengonfirmasi invoice ${data.number}.`)}`,'_blank');else toast('Nomor WhatsApp usaha belum tersedia.');};$('#publicPrint').onclick=()=>window.print();requestAnimationFrame(fitPublicInvoice);
+      if($('#publicPaymentHistory'))$('#publicPaymentHistory').innerHTML=(data.payments||[]).length?`<b>Riwayat pembayaran</b>${(data.payments||[]).map(x=>`<div><span>${formatDate(String(x.paid_at||'').slice(0,10))}</span><b>${money(x.amount,data.currency)}</b><small>${escape(x.method||'')}</small></div>`).join('')}`:'<small>Belum ada pembayaran tercatat.</small>';const phone=normalizePhone(p.phone);$('#publicWhatsapp').onclick=()=>{if(phone)window.open(`https://wa.me/${phone}?text=${encodeURIComponent(`Halo, saya ingin mengonfirmasi invoice ${data.number}.`)}`,'_blank');else toast('Nomor WhatsApp usaha belum tersedia.');};$('#publicPrint').onclick=()=>window.print();requestAnimationFrame(fitPublicInvoice);
     }catch(err){$('#publicInvoiceTitle').textContent='Invoice tidak tersedia';$('#publicStatus').textContent='Tidak ditemukan';$('#publicPaper').innerHTML=`<div class="public-error"><h2>Link invoice tidak dapat dibuka.</h2><p>${escape(err.message)}</p></div>`;}
   }
   function fitPublicInvoice(){ if(innerWidth>760)return;const paper=$('#publicPaper'),wrap=paper?.parentElement;if(!paper||!wrap)return;const scale=Math.min(1,(wrap.clientWidth-16)/794);paper.style.transform=`scale(${scale})`;paper.style.transformOrigin='top left';wrap.style.height=`${1123*scale+16}px`; }
 
+  $('#publicProofForm')?.addEventListener('submit',async e=>{e.preventDefault();const token=$('#publicProofToken').value,file=$('#publicProofFile').files?.[0],status=$('#publicProofStatus');if(!token||!file)return;const btn=e.submitter;btn.disabled=true;status.textContent='Mengunggah bukti...';try{const url=await Cloud.uploadPublicProof(token,file);await Cloud.submitPublicProof(token,url,Number($('#publicProofAmount').value)||0,$('#publicProofName').value.trim(),$('#publicProofNote').value.trim());status.textContent='Bukti pembayaran berhasil dikirim. Terima kasih.';e.target.reset();$('#publicProofToken').value=token;}catch(err){status.textContent=err.message||'Gagal mengirim bukti.';}finally{btn.disabled=false;}});
+
   // ---------------- Render all ----------------
   function renderAllData(){ renderDashboard();renderInvoices();renderCustomers();renderProducts();renderTemplates(false);renderRecurring();renderNotifications();loadSettings();refreshCustomerSelects();showBrowserReminders().catch(()=>{}); }
 
-  // ---------------- PWA / shortcuts ----------------
-  addEventListener('beforeinstallprompt',e=>{e.preventDefault();state.deferredPrompt=e;$('#installBtn')?.classList.remove('hidden');});
-  $('#installBtn')?.addEventListener('click',async()=>{if(!state.deferredPrompt)return;state.deferredPrompt.prompt();await state.deferredPrompt.userChoice;state.deferredPrompt=null;$('#installBtn').classList.add('hidden');});
+  // ---------------- PWA / install / shortcuts ----------------
+  function isStandalone(){return matchMedia?.('(display-mode: standalone)').matches||navigator.standalone===true;}
+  async function triggerInstall(){
+    if(isStandalone()){toast('InvoiceKu sudah terpasang sebagai aplikasi.');return;}
+    if(state.deferredPrompt){state.deferredPrompt.prompt();const result=await state.deferredPrompt.userChoice;state.deferredPrompt=null;$('#installPrompt')?.classList.add('hidden');$('#installBtn')?.classList.add('hidden');if(result.outcome==='accepted')toast('InvoiceKu sedang dipasang.');return;}
+    if(/iphone|ipad|ipod/i.test(navigator.userAgent)){toast('Di iPhone: tekan Share lalu pilih Add to Home Screen.');return;}
+    toast('Buka menu browser lalu pilih Install app / Tambahkan ke layar utama.');
+  }
+  addEventListener('beforeinstallprompt',e=>{e.preventDefault();state.deferredPrompt=e;$('#installBtn')?.classList.remove('hidden');$('#landingInstallBtn')?.classList.remove('hidden');if(!isStandalone()&&localStorage.getItem('invoiceku_install_prompt_dismissed')!=='1')setTimeout(()=>$('#installPrompt')?.classList.remove('hidden'),1400);});
+  ['#installBtn','#landingInstallBtn','#landingInstallBtn2','#installPromptYes'].forEach(sel=>$(sel)?.addEventListener('click',triggerInstall));
+  $('#installPromptNo')?.addEventListener('click',()=>{$('#installPrompt')?.classList.add('hidden');localStorage.setItem('invoiceku_install_prompt_dismissed','1');});
+  addEventListener('appinstalled',()=>{$('#installPrompt')?.classList.add('hidden');$('#landingInstallBtn')?.classList.add('hidden');toast('InvoiceKu berhasil diinstall.');});
+  if(isStandalone())$('#landingInstallBtn')?.classList.add('hidden');
+  else if(localStorage.getItem('invoiceku_install_prompt_dismissed')!=='1')setTimeout(()=>{if(!isStandalone()&&!$('#landing')?.classList.contains('hidden'))$('#installPrompt')?.classList.remove('hidden');},1800);
   if('serviceWorker'in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
-  addEventListener('keydown',e=>{
-    if(!$('#app')||$('#app').classList.contains('hidden'))return;
-    const mod=e.ctrlKey||e.metaKey;
-    if(mod&&e.key.toLowerCase()==='s'){e.preventDefault();saveCurrentInvoice(false);}
-    if(mod&&e.key.toLowerCase()==='n'){e.preventDefault();newInvoice(true);}
-    if(mod&&e.shiftKey&&e.key.toLowerCase()==='p'){e.preventDefault();downloadPDF();}
-    if(mod&&e.key.toLowerCase()==='z'&&!['INPUT','TEXTAREA'].includes(document.activeElement?.tagName)){e.preventDefault();e.shiftKey?redo():undo();}
-  });
+  addEventListener('keydown',e=>{if(!$('#app')||$('#app').classList.contains('hidden'))return;const mod=e.ctrlKey||e.metaKey;if(mod&&e.key.toLowerCase()==='s'){e.preventDefault();saveCurrentInvoice(false);}if(mod&&e.key.toLowerCase()==='n'){e.preventDefault();newInvoice(true);}if(mod&&e.shiftKey&&e.key.toLowerCase()==='p'){e.preventDefault();downloadPDF();}if(mod&&e.key.toLowerCase()==='k'){e.preventDefault();window.InvoiceKuSuite?.openCommand?.();}if(mod&&e.key.toLowerCase()==='z'&&!['INPUT','TEXTAREA'].includes(document.activeElement?.tagName)){e.preventDefault();e.shiftKey?redo():undo();}});
+
+  window.InvoiceKuApp={state,switchTab,newInvoice,openInvoice,saveCurrentInvoice,renderAllData,renderInvoices,renderDashboard,renderInvoice,renderItems,syncDraftToForm,persistLocalDraft,profileToUi,profileToDb,loadAllData,bootstrapUser,toast,openModal,closeModal,money,formatDate,publicLink,normalizePhone,invoicePayload,downloadPDF,downloadPNG,shareCurrent,emptyDraft,setDraft(d){state.draft=d;syncDraftToForm();renderInvoice();persistLocalDraft();},reload:bootstrapUser};
 
   // ---------------- Boot ----------------
   async function boot(){
