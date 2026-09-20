@@ -1,0 +1,9 @@
+{
+  "name":"InvoiceKu - Invoice Online",
+  "short_name":"InvoiceKu",
+  "start_url":"./",
+  "display":"standalone",
+  "background_color":"#f6f7fb",
+  "theme_color":"#0f172a",
+  "description":"Pembuat invoice online dengan ratusan template dan ekspor PNG/PDF."
+}

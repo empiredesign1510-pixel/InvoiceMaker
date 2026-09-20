@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>InvoiceKu — Invoice Online</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="toast" class="toast" aria-live="polite"></div>
+
+  <section id="onboarding" class="onboarding">
+    <div class="onboarding-hero">
+      <div class="brand-pill">InvoiceKu</div>
+      <h1>Buat invoice profesional dalam hitungan detik.</h1>
+      <p>Pilih dari ratusan gaya invoice, simpan data usaha sekali, lalu unduh invoice sebagai PNG atau PDF.</p>
+      <div class="hero-points">
+        <span>✓ 144 template</span><span>✓ Auto-save</span><span>✓ PNG & PDF</span><span>✓ Mobile friendly</span>
+      </div>
+    </div>
+    <form id="profileForm" class="profile-card">
+      <div class="form-head">
+        <div>
+          <span class="eyebrow">PROFIL USAHA</span>
+          <h2>Masuk & siapkan identitas usaha</h2>
+        </div>
+        <p>Data disimpan di perangkat ini dan dapat diubah kapan saja.</p>
+      </div>
+
+      <label class="upload-tile">
+        <input id="logoInput" type="file" accept="image/*" hidden />
+        <div id="logoPreview" class="upload-preview">LOGO</div>
+        <div><strong>Logo usaha</strong><small>PNG/JPG, maks. 3 MB</small></div>
+      </label>
+
+      <div class="field-grid">
+        <label><span>Nama Usaha *</span><input id="businessName" required placeholder="Contoh: Jeda Space Coffee" /></label>
+        <label><span>No. HP / WhatsApp *</span><input id="businessPhone" required placeholder="08xxxxxxxxxx" /></label>
+        <label class="full"><span>Alamat Usaha *</span><textarea id="businessAddress" required placeholder="Alamat lengkap usaha"></textarea></label>
+        <label><span>Email (opsional)</span><input id="businessEmail" type="email" placeholder="halo@usaha.com" /></label>
+        <label><span>Website (opsional)</span><input id="businessWebsite" placeholder="usaha.com" /></label>
+      </div>
+
+      <label class="upload-tile signature-upload">
+        <input id="signatureInput" type="file" accept="image/*" hidden />
+        <div id="signaturePreview" class="upload-preview signature">TTD</div>
+        <div><strong>Tanda tangan digital</strong><small>Opsional, latar transparan lebih bagus</small></div>
+      </label>
+
+      <button class="primary-btn wide" type="submit">Masuk ke InvoiceKu →</button>
+      <small class="privacy-note">Versi MVP ini tidak mengirim data usaha ke server. Semua tersimpan lokal di browser.</small>
+    </form>
+  </section>
+
+  <div id="app" class="app hidden">
+    <aside class="sidebar">
+      <div class="brand-row"><div class="brand-mark">IK</div><div><strong>InvoiceKu</strong><small>Online Invoice Studio</small></div></div>
+      <nav class="nav-tabs">
+        <button data-tab="editor" class="nav-item active">✦ <span>Buat Invoice</span></button>
+        <button data-tab="templates" class="nav-item">▦ <span>Template</span><b id="templateCount">144</b></button>
+        <button data-tab="history" class="nav-item">◷ <span>Riwayat</span></button>
+        <button data-tab="settings" class="nav-item">⚙ <span>Profil Usaha</span></button>
+      </nav>
+      <div class="sidebar-bottom">
+        <button id="installBtn" class="ghost-btn hidden">＋ Install Aplikasi</button>
+        <button id="logoutBtn" class="logout-btn">Keluar</button>
+      </div>
+    </aside>
+
+    <header class="mobile-header">
+      <button id="menuBtn" class="icon-btn">☰</button>
+      <strong>InvoiceKu</strong>
+      <button id="quickDownload" class="icon-btn">↓</button>
+    </header>
+
+    <main class="workspace">
+      <section id="editorTab" class="tab-panel active">
+        <div class="topbar">
+          <div><span class="eyebrow">INVOICE EDITOR</span><h1>Buat invoice baru</h1></div>
+          <div class="top-actions">
+            <button id="saveDraftBtn" class="secondary-btn">Simpan</button>
+            <button id="downloadPngBtn" class="secondary-btn">PNG</button>
+            <button id="downloadPdfBtn" class="primary-btn">PDF</button>
+          </div>
+        </div>
+
+        <div class="editor-layout">
+          <div class="editor-panel">
+            <div class="panel-section">
+              <div class="section-title"><h3>Detail invoice</h3><button id="newInvoiceBtn" class="text-btn">Reset</button></div>
+              <div class="field-grid compact">
+                <label><span>No. Invoice</span><input id="invoiceNumber" /></label>
+                <label><span>Mata Uang</span><select id="currency"><option value="IDR">IDR — Rupiah</option><option value="USD">USD — Dollar</option><option value="SGD">SGD — Singapore Dollar</option><option value="MYR">MYR — Ringgit</option><option value="EUR">EUR — Euro</option></select></label>
+                <label><span>Tanggal</span><input id="invoiceDate" type="date" /></label>
+                <label><span>Jatuh Tempo</span><input id="dueDate" type="date" /></label>
+              </div>
+            </div>
+
+            <div class="panel-section">
+              <h3>Ditagihkan kepada</h3>
+              <div class="field-grid compact">
+                <label><span>Nama Pelanggan</span><input id="customerName" placeholder="Nama / perusahaan" /></label>
+                <label><span>No. HP</span><input id="customerPhone" placeholder="08xxxxxxxxxx" /></label>
+                <label class="full"><span>Alamat</span><textarea id="customerAddress" placeholder="Alamat pelanggan"></textarea></label>
+              </div>
+            </div>
+
+            <div class="panel-section">
+              <div class="section-title"><h3>Item</h3><button id="addItemBtn" class="small-btn">＋ Tambah Item</button></div>
+              <div id="itemsList" class="items-list"></div>
+            </div>
+
+            <div class="panel-section">
+              <h3>Perhitungan</h3>
+              <div class="field-grid compact thirds">
+                <label><span>Diskon (%)</span><input id="discount" type="number" min="0" max="100" value="0" /></label>
+                <label><span>Pajak (%)</span><input id="tax" type="number" min="0" max="100" value="0" /></label>
+                <label><span>Ongkir</span><input id="shipping" type="number" min="0" value="0" /></label>
+              </div>
+            </div>
+
+            <div class="panel-section">
+              <h3>Pembayaran & catatan</h3>
+              <label><span>Info pembayaran</span><textarea id="paymentInfo" placeholder="Contoh: BCA 123456789 a.n. Jeda Space"></textarea></label>
+              <label><span>Catatan</span><textarea id="notes" placeholder="Terima kasih atas kepercayaan Anda."></textarea></label>
+            </div>
+          </div>
+
+          <div class="preview-panel">
+            <div class="preview-toolbar">
+              <div><span>Template:</span><strong id="currentTemplateName">Aurora 01</strong></div>
+              <button id="changeTemplateBtn" class="small-btn">Ganti Template</button>
+            </div>
+            <div class="paper-stage"><div id="invoicePaper" class="invoice-paper"></div></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="templatesTab" class="tab-panel">
+        <div class="topbar">
+          <div><span class="eyebrow">TEMPLATE GALLERY</span><h1>Pilih gaya invoice</h1><p class="muted">144 kombinasi desain — filter berdasarkan karakter visual.</p></div>
+          <div class="search-wrap"><input id="templateSearch" placeholder="Cari template..." /></div>
+        </div>
+        <div id="filterChips" class="filter-chips"></div>
+        <div id="templateGrid" class="template-grid"></div>
+      </section>
+
+      <section id="historyTab" class="tab-panel">
+        <div class="topbar"><div><span class="eyebrow">RIWAYAT</span><h1>Invoice tersimpan</h1><p class="muted">Tersimpan lokal pada perangkat ini.</p></div><button id="exportDataBtn" class="secondary-btn">Export Data</button></div>
+        <div id="historyList" class="history-list"></div>
+      </section>
+
+      <section id="settingsTab" class="tab-panel">
+        <div class="topbar"><div><span class="eyebrow">PENGATURAN</span><h1>Profil usaha</h1></div></div>
+        <div class="settings-card">
+          <form id="settingsForm">
+            <div class="field-grid">
+              <label><span>Nama Usaha</span><input id="settingsName" required /></label>
+              <label><span>No. HP</span><input id="settingsPhone" required /></label>
+              <label class="full"><span>Alamat</span><textarea id="settingsAddress" required></textarea></label>
+              <label><span>Email</span><input id="settingsEmail" type="email" /></label>
+              <label><span>Website</span><input id="settingsWebsite" /></label>
+            </div>
+            <div class="settings-media">
+              <label class="upload-tile"><input id="settingsLogo" type="file" accept="image/*" hidden /><div id="settingsLogoPreview" class="upload-preview">LOGO</div><div><strong>Ganti logo</strong><small>Klik untuk pilih file</small></div></label>
+              <label class="upload-tile"><input id="settingsSignature" type="file" accept="image/*" hidden /><div id="settingsSignaturePreview" class="upload-preview signature">TTD</div><div><strong>Ganti tanda tangan</strong><small>Opsional</small></div></label>
+            </div>
+            <button class="primary-btn" type="submit">Simpan Perubahan</button>
+          </form>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="downloadModal" class="modal hidden">
+    <div class="modal-card">
+      <button class="modal-close" data-close-modal>×</button>
+      <span class="eyebrow">DOWNLOAD</span><h2>Pilih format invoice</h2><p>File akan dibuat dari desain yang sedang tampil.</p>
+      <div class="download-options">
+        <button id="modalPng" class="format-card"><b>PNG</b><span>Gambar resolusi tinggi</span></button>
+        <button id="modalPdf" class="format-card"><b>PDF</b><span>Dokumen A4 siap kirim/cetak</span></button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://unpkg.com/jspdf@4.2.1/dist/jspdf.umd.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
