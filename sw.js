@@ -1,4 +1,4 @@
-const CACHE='invoiceku-cloud-v4-connected-1';
+const CACHE='invoiceku-cloud-v5-auth-1';
 const LOCAL=[
   './','./index.html','./styles.css','./manifest.webmanifest',
   './assets/brand-mark.png','./assets/icon-192.png','./assets/icon-512.png',

@@ -90,3 +90,19 @@ html[data-theme="dark"] .hero-product-shell,html[data-theme="dark"] .hero-appbar
 .custom-template-delete{border:0;background:transparent;color:#a14c55;font-size:.61rem;font-weight:750;padding:6px 0 0;cursor:pointer;text-align:left}
 @media(max-width:760px){.mobile-bottom-nav{grid-template-columns:repeat(5,1fr)!important}}
 @media print{#publicPaper{transform:none!important;transform-origin:top left!important}.public-paper-wrap{height:auto!important;overflow:visible!important}}
+
+/* InvoiceKu v5 auth & account polish */
+.auth-consent{display:grid;grid-template-columns:18px 1fr;align-items:start;gap:10px;margin:12px 0 4px;padding:11px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2);cursor:pointer}
+.auth-consent input{width:18px;height:18px;margin:1px 0 0;accent-color:var(--inverse);box-shadow:none!important}
+.auth-consent>span{font-size:.7rem!important;line-height:1.5;color:var(--text-soft)!important;font-weight:600}
+.auth-divider{display:flex;align-items:center;gap:12px;margin:13px 0 2px;color:var(--text-soft);font-size:.65rem}
+.auth-divider:before,.auth-divider:after{content:"";height:1px;background:var(--border);flex:1}
+.google-btn{align-items:center}
+.google-mark{width:21px;height:21px;border:1px solid var(--border);border-radius:50%;display:grid;place-items:center;font-family:Arial,sans-serif;font-size:.72rem;background:var(--surface);color:var(--text)}
+.google-btn.is-disabled,.google-btn:disabled{opacity:.52;cursor:not-allowed}
+.provider-note{margin:7px 0 0!important;padding:9px 10px;border-radius:9px;background:var(--surface-2);border:1px solid var(--border);font-size:.66rem!important;line-height:1.45;text-align:center;color:var(--text-soft)!important}
+.danger-outline-btn{width:100%;margin-top:9px;border:1px solid color-mix(in srgb,#ef4444 36%,var(--border));background:transparent;color:#dc2626;border-radius:10px;padding:10px 14px;font-weight:760;cursor:pointer}
+[data-theme="dark"] .danger-outline-btn{color:#fca5a5;border-color:color-mix(in srgb,#ef4444 35%,var(--border))}
+.more-grid .more-logout{color:#dc2626;border-color:color-mix(in srgb,#ef4444 28%,var(--border))}
+[data-theme="dark"] .more-grid .more-logout{color:#fca5a5}
+@media(max-width:760px){.auth-card{padding:24px 20px}.auth-consent{padding:10px}.danger-outline-btn{min-height:44px}}
