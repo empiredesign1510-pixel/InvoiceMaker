@@ -4,7 +4,7 @@ InvoiceKu sekarang bukan lagi prototype lokal. Versi ini memakai **Supabase Auth
 
 ## Fitur yang sudah masuk
 
-- Login email/password dan Google OAuth.
+- Login email/password.
 - Profil bisnis cloud: logo, alamat, WhatsApp, email, website, tanda tangan, rekening, e-wallet, dan QRIS.
 - 288 template bawaan dengan preview invoice nyata dan kategori penggunaan bisnis.
 - Favorite template, recently used, dan Template Builder untuk menyimpan template custom.
@@ -89,20 +89,6 @@ window.INVOICEKU_CONFIG = {
 ```
 
 Untuk testing lokal, `publicSiteUrl` boleh dikosongkan.
-
----
-
-# 4. Aktifkan login Google (opsional tetapi direkomendasikan)
-
-Di Supabase:
-
-**Authentication → Providers → Google**
-
-Aktifkan Google dan isi Client ID / Client Secret dari Google Cloud Console.
-
-Tambahkan domain Vercel Anda ke URL/redirect yang dibutuhkan Supabase dan Google OAuth.
-
-Login email/password tetap dapat dipakai tanpa Google OAuth.
 
 ---
 
