@@ -3,7 +3,7 @@
   "short_name":"InvoiceKu",
   "start_url":"./",
   "display":"standalone",
-  "background_color":"#f6f7fb",
-  "theme_color":"#0f172a",
-  "description":"Pembuat invoice online dengan ratusan template dan ekspor PNG/PDF."
+  "background_color":"#f4f6f8",
+  "theme_color":"#0b1220",
+  "description":"Pembuat invoice online mobile-first dengan 288 template nyata dan ekspor PNG/PDF."
 }

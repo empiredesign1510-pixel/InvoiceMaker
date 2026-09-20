@@ -1,27 +1,22 @@
-# InvoiceKu
+# InvoiceKu — Mobile First Invoice Studio
 
-InvoiceKu adalah MVP pembuat invoice online berbasis HTML/CSS/JavaScript tanpa build step.
+Upgrade MVP InvoiceKu dengan fokus mobile-first dan galeri template yang dapat dipreview secara nyata.
 
-## Fitur
-- Onboarding profil usaha: logo, nama, alamat, HP, email, website, tanda tangan digital.
-- 144 template invoice (12 palet × 12 layout).
-- Editor item, qty, harga, diskon, pajak, ongkir, catatan, dan pembayaran.
-- Preview realtime.
-- Download PNG resolusi tinggi dan PDF A4.
-- Simpan riwayat invoice di LocalStorage.
-- PWA/installable.
-- Responsive untuk HP.
+## Fitur utama
+- Landing page modern dan responsif.
+- Created by **xdaniel04** pada landing page, terhubung ke Instagram.
+- Onboarding profil usaha: logo, nama usaha, alamat, no. HP, email, website, tanda tangan opsional.
+- 288 template: 18 palet × 16 gaya layout.
+- Thumbnail template menggunakan simulasi invoice nyata, bukan placeholder garis.
+- Editor responsif untuk HP dan desktop.
+- Mobile bottom navigation untuk akses cepat ke Editor, Template, Riwayat, dan Profil.
+- Preview A4 otomatis menyesuaikan lebar layar tanpa horizontal scrolling.
+- Export PNG resolusi tinggi dan PDF A4.
+- Riwayat invoice dan auto-save lokal.
+- PWA/installable app.
+- Tanpa Firebase Storage dan tanpa build step.
 
-## Jalankan lokal
-Buka `index.html`, atau gunakan server statis sederhana.
+## Deploy
+Upload semua file di folder ini ke repository GitHub lalu import repository tersebut ke Vercel.
 
-## Deploy ke Vercel
-1. Upload semua file ke satu repository GitHub.
-2. Import repository di Vercel.
-3. Framework Preset: **Other**.
-4. Build Command: kosong.
-5. Output Directory: kosong / `.`.
-6. Deploy.
-
-## Catatan produksi
-Versi ini menyimpan profil dan invoice di browser pengguna. Untuk aplikasi SaaS multi-device, tambahkan autentikasi dan database (misalnya Supabase/Firebase/Convex) tanpa perlu Firebase Storage jika logo/signature dikompresi dan disimpan sebagai data URL kecil atau memakai object storage eksternal.
+Tidak perlu `npm install` atau build command karena aplikasi ini berupa static site.
