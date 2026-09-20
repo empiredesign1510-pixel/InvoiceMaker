@@ -1,8 +1,8 @@
-const CACHE='invoiceku-cloud-v5-1-email-auth';
+const CACHE='invoiceku-v6-business-suite';
 const LOCAL=[
   './','./index.html','./styles.css','./manifest.webmanifest',
   './assets/brand-mark.png','./assets/icon-192.png','./assets/icon-512.png',
-  './js/config.js','./js/templates.js','./js/invoice-renderer.js','./js/cloud.js','./js/app.js'
+  './js/config.js','./js/templates.js','./js/invoice-renderer.js','./js/cloud.js','./js/app.js','./js/business-suite.js'
 ];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(LOCAL)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));

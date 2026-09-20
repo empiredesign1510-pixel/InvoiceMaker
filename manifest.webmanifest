@@ -1,7 +1,7 @@
 {
-  "name": "InvoiceKu Cloud",
+  "name": "InvoiceKu",
   "short_name": "InvoiceKu",
-  "description": "Buat, kirim, pantau, dan kelola invoice online.",
+  "description": "Buat invoice, penawaran, kwitansi, dan pantau pembayaran dari HP atau PC.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
