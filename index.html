@@ -9,6 +9,9 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="assets/icon-192.png" />
   <link rel="stylesheet" href="styles.css" />
+  <!-- InvoiceKu v6.3: poster hero dipreload agar first paint video terasa instan -->
+  <link rel="preload" as="image" href="assets/videos/landing-light-mobile-poster.webp" media="(max-width: 760px)" />
+  <link rel="preload" as="image" href="assets/videos/landing-light-poster.webp" media="(min-width: 761px)" />
 </head>
 <body>
   <div id="toast" class="toast" role="status"></div>
@@ -223,5 +226,6 @@
   <script src="js/cloud.js"></script>
   <script src="js/app.js"></script>
   <script src="js/business-suite.js"></script>
+  <script src="js/landing-theme-video.js"></script>
 </body>
 </html>
