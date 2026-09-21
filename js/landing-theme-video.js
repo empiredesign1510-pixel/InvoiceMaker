@@ -20,7 +20,7 @@
   };
 
   const css = `
-    /* InvoiceKu v6.4 — cinematic full-screen theme video hero */
+    /* InvoiceKu v6.6 — cinematic full-screen theme video hero */
     .landing { overflow-x: clip; }
     .landing-nav {
       position: absolute !important;
@@ -186,8 +186,8 @@
 
     @media (max-width: 760px) {
       .landing-nav {
-        width: calc(100% - 40px);
-        padding-top: max(15px, env(safe-area-inset-top)) !important;
+        width: calc(100% - 36px);
+        padding-top: max(14px, env(safe-area-inset-top)) !important;
       }
       .theme-video-hero.cloud-hero {
         min-height: 100svh;
@@ -196,83 +196,162 @@
       }
       html[data-theme="dark"] .theme-video-hero.cloud-hero { background: #070b0e; }
 
-      /* Mobile v6.5: video is the hero background too, not a separate block. */
+      /* Mobile v6.6: full-bleed portrait movie, never a separate block. */
       .theme-video-fullbleed {
-        display: block;
-        inset: 0;
+        display: block !important;
+        inset: 0 !important;
       }
       .theme-video {
         inset: -2px;
         width: calc(100% + 4px);
         height: calc(100% + 4px);
         aspect-ratio: auto;
-        object-fit: cover;
-        object-position: center center;
+        object-fit: cover !important;
+        object-position: center center !important;
         transform: translate3d(0,0,0) scale(1.003);
       }
-      .theme-video-light { object-position: center center; }
-      .theme-video-dark { object-position: center center; }
+      .theme-video-light {
+        filter: saturate(1.05) contrast(1.02) brightness(1.01);
+      }
+      .theme-video-dark {
+        filter: saturate(1.08) contrast(1.04) brightness(.92);
+      }
 
-      /* Strong top/left readability, while the movie remains visible edge-to-edge. */
+      /* Keep copy readable but let the actual movie remain clearly visible. */
       .theme-video-overlay {
         background:
-          linear-gradient(180deg, rgba(247,247,244,.92) 0%, rgba(247,247,244,.78) 26%, rgba(247,247,244,.42) 54%, rgba(247,247,244,.16) 78%, rgba(247,247,244,.10) 100%),
-          linear-gradient(90deg, rgba(247,247,244,.78) 0%, rgba(247,247,244,.42) 66%, rgba(247,247,244,.08) 100%);
+          linear-gradient(180deg, rgba(247,247,244,.76) 0%, rgba(247,247,244,.58) 27%, rgba(247,247,244,.32) 55%, rgba(247,247,244,.16) 78%, rgba(247,247,244,.10) 100%),
+          linear-gradient(90deg, rgba(247,247,244,.62) 0%, rgba(247,247,244,.32) 62%, rgba(247,247,244,.06) 100%);
       }
       html[data-theme="dark"] .theme-video-overlay {
         background:
-          linear-gradient(180deg, rgba(7,11,14,.91) 0%, rgba(7,11,14,.77) 27%, rgba(7,11,14,.45) 55%, rgba(7,11,14,.20) 79%, rgba(7,11,14,.14) 100%),
-          linear-gradient(90deg, rgba(7,11,14,.82) 0%, rgba(7,11,14,.46) 68%, rgba(7,11,14,.10) 100%);
+          linear-gradient(180deg, rgba(7,11,14,.75) 0%, rgba(7,11,14,.59) 28%, rgba(7,11,14,.34) 57%, rgba(7,11,14,.19) 80%, rgba(7,11,14,.13) 100%),
+          linear-gradient(90deg, rgba(7,11,14,.64) 0%, rgba(7,11,14,.34) 64%, rgba(7,11,14,.07) 100%);
       }
+
       .theme-video-hero .hero-content {
-        align-items: center;
+        display: flex !important;
+        align-items: flex-start !important;
         width: calc(100% - 40px);
         max-width: none;
         min-height: 100svh;
         min-height: 100dvh;
         margin: 0 auto !important;
-        padding: calc(86px + env(safe-area-inset-top)) 0 48px !important;
+        padding: calc(92px + env(safe-area-inset-top)) 0 30px !important;
       }
       .theme-video-hero .hero-copy {
         width: 100%;
         max-width: 560px;
         margin: 0 !important;
       }
+      .theme-video-hero .hero-kicker {
+        margin-bottom: 18px !important;
+      }
       .theme-video-hero .hero-copy h1 {
         max-width: 100%;
+        margin-top: 0 !important;
         text-wrap: balance;
-        text-shadow: 0 1px 18px rgba(255,255,255,.16);
+        text-shadow: 0 1px 16px rgba(255,255,255,.12);
       }
       html[data-theme="dark"] .theme-video-hero .hero-copy h1 {
-        text-shadow: 0 2px 24px rgba(0,0,0,.26);
+        text-shadow: 0 2px 22px rgba(0,0,0,.24);
       }
-      .theme-video-hero .hero-copy > p { max-width: 94%; }
-      .theme-video-hero .hero-actions { gap: 9px; margin-top: 24px; }
-      .theme-video-hero .hero-actions > * { flex: 1 1 135px; }
-      .theme-video-hero .hero-trust { margin-top: 20px; gap: 8px 13px; }
+      .theme-video-hero .hero-copy > p {
+        max-width: 100%;
+        margin-top: 20px !important;
+      }
+
+      /* Explicit mobile CTA geometry. Prevent inherited flex/grid rules from
+         turning the buttons into giant cards on Chrome/Android. */
+      .theme-video-hero .hero-actions {
+        display: grid !important;
+        grid-template-columns: minmax(0,1fr) minmax(0,1fr) !important;
+        grid-auto-rows: auto !important;
+        gap: 9px !important;
+        width: 100% !important;
+        margin: 22px 0 0 !important;
+      }
+      .theme-video-hero .hero-actions > * {
+        width: 100% !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        height: 46px !important;
+        flex: none !important;
+        margin: 0 !important;
+        padding: 0 14px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 8px !important;
+        border-radius: 999px !important;
+        font-size: .74rem !important;
+        line-height: 1 !important;
+        white-space: nowrap !important;
+        box-sizing: border-box !important;
+      }
+      .theme-video-hero #landingStart {
+        grid-column: 1 / -1 !important;
+        height: 52px !important;
+        font-size: .78rem !important;
+      }
+      .theme-video-hero .hero-trust {
+        margin-top: 17px !important;
+        gap: 7px 12px !important;
+      }
       .hero-scroll-cue { display: none; }
     }
 
     @media (max-width: 480px) {
-      .landing-nav { width: calc(100% - 36px); }
+      .landing-nav { width: calc(100% - 32px); }
       .theme-video-hero .hero-content {
-        width: calc(100% - 40px);
-        padding-top: calc(82px + env(safe-area-inset-top)) !important;
-        padding-bottom: 38px !important;
+        width: calc(100% - 36px);
+        padding-top: calc(86px + env(safe-area-inset-top)) !important;
+        padding-bottom: 24px !important;
       }
       .theme-video-hero .hero-copy h1 {
-        font-size: clamp(3rem, 15.2vw, 4.25rem) !important;
-        line-height: .88 !important;
-        letter-spacing: -.065em !important;
+        font-size: clamp(2.7rem, 13.4vw, 3.65rem) !important;
+        line-height: .91 !important;
+        letter-spacing: -.058em !important;
       }
       .theme-video-hero .hero-copy > p {
         max-width: 100%;
-        font-size: .82rem;
-        line-height: 1.62;
+        margin-top: 18px !important;
+        font-size: .80rem !important;
+        line-height: 1.56 !important;
       }
-      .theme-video-hero .hero-kicker { margin-bottom: 20px; }
-      .theme-video-hero .hero-actions { margin-top: 22px; }
-      .theme-video-hero .hero-trust { margin-top: 18px; }
+      .theme-video-hero .hero-kicker {
+        margin-bottom: 17px !important;
+        font-size: .66rem !important;
+      }
+      .theme-video-hero .hero-actions { margin-top: 20px !important; }
+      .theme-video-hero .hero-actions > * {
+        height: 44px !important;
+        font-size: .71rem !important;
+        padding-inline: 11px !important;
+      }
+      .theme-video-hero #landingStart {
+        height: 50px !important;
+        font-size: .76rem !important;
+      }
+      .theme-video-hero .hero-trust {
+        margin-top: 15px !important;
+        gap: 6px 10px !important;
+        font-size: .58rem !important;
+      }
+    }
+
+    @media (max-width: 370px) {
+      .theme-video-hero .hero-content {
+        width: calc(100% - 30px);
+        padding-top: calc(82px + env(safe-area-inset-top)) !important;
+      }
+      .theme-video-hero .hero-copy h1 {
+        font-size: clamp(2.55rem, 13vw, 3.25rem) !important;
+      }
+      .theme-video-hero .hero-actions > * {
+        font-size: .66rem !important;
+        padding-inline: 9px !important;
+      }
     }
 
     @media (prefers-reduced-motion: reduce) {
