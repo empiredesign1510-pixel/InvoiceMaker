@@ -1,4 +1,4 @@
-const CACHE = 'invoiceku-v6.3-video-landing';
+const CACHE = 'invoiceku-v6.4-full-video-hero';
 const APP_SHELL = [
   './',
   './index.html',
