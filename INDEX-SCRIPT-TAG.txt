@@ -1,0 +1,3 @@
+Tambahkan tepat sebelum </body>:
+
+<script src="js/landing-theme-video.js"></script>
